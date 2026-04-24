@@ -1,0 +1,32 @@
+//@version=6
+strategy("ズレ手法", overlay=true, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+
+// 入力
+atrLen  = input.int(14, "ATR期間", minval=1)
+tpMult  = input.float(2.0, "TP (ATR倍数)", minval=0.1, step=0.1)
+slMult  = input.float(1.0, "SL (ATR倍数)", minval=0.1, step=0.1)
+
+// バックテスト期間
+startDate = input.time(timestamp("2026-04-01 00:00"), "開始日")
+endDate   = input.time(timestamp("2026-04-24 23:59"), "終了日")
+inRange   = time >= startDate and time <= endDate
+
+// ATR
+atr = ta.atr(atrLen)
+
+// 陰線4本連続判定
+bearish(i) => close[i] < open[i]
+signal = bearish(1) and bearish(2) and bearish(3) and bearish(4)
+
+// エントリー（期間内のみ）
+if signal and strategy.position_size == 0 and inRange
+    tp = close + atr * tpMult
+    sl = close - atr * slMult
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Exit", "Long", limit=tp, stop=sl)
+
+// 可視化
+plotshape(signal and inRange, "シグナル", shape.triangleup, location.belowbar, color.green, size=size.small)
+
+// 期間外グレーアウト
+bgcolor(not inRange ? color.new(color.gray, 90) : na)
