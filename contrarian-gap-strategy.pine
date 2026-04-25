@@ -14,6 +14,10 @@ slTicks  = input.int(10, "SL (Tick数)", minval=1)
 // 入力 - 陰線本数
 bearCount = input.int(4, "陰線本数", minval=2, maxval=6)
 
+// 入力 - アラート
+alertPreSignal   = input.bool(true, "事前アラート（N-1本陰線）")
+alertEntrySignal = input.bool(true, "エントリーシグナル アラート")
+
 // バックテスト期間
 startDate = input.time(timestamp("2026-04-01 00:00"), "開始日")
 endDate   = input.time(timestamp("2026-04-24 23:59"), "終了日")
@@ -25,19 +29,15 @@ tradeStartMin  = input.int(0,  "取引開始 分", minval=0, maxval=59)
 tradeEndHour   = input.int(15, "取引終了 時", minval=0, maxval=23)
 tradeEndMin    = input.int(30, "取引終了 分", minval=0, maxval=59)
 
-timeOk = (hour > tradeStartHour or (hour == tradeStartHour and minute >= tradeStartMin)) and
-         (hour < tradeEndHour   or (hour == tradeEndHour   and minute <= tradeEndMin))
+timeOk = (hour > tradeStartHour or (hour == tradeStartHour and minute >= tradeStartMin)) and (hour < tradeEndHour or (hour == tradeEndHour and minute <= tradeEndMin))
 
 // ATR
 atr = ta.atr(atrLen)
 
 // 陰線判定（本数可変）
 bearish(i) => close[i] < open[i]
-signal = bearish(1) and bearish(2) and
-         (bearCount >= 3 ? bearish(3) : true) and
-         (bearCount >= 4 ? bearish(4) : true) and
-         (bearCount >= 5 ? bearish(5) : true) and
-         (bearCount >= 6 ? bearish(6) : true)
+signal    = bearish(1) and bearish(2) and (bearCount >= 3 ? bearish(3) : true) and (bearCount >= 4 ? bearish(4) : true) and (bearCount >= 5 ? bearish(5) : true) and (bearCount >= 6 ? bearish(6) : true)
+preSignal = bearish(1) and (bearCount >= 3 ? bearish(2) : true) and (bearCount >= 4 ? bearish(3) : true) and (bearCount >= 5 ? bearish(4) : true) and (bearCount >= 6 ? bearish(5) : true)
 
 // 大引け判定（15:25バー = 15:30大引け）
 eodClose = hour == 15 and minute >= 25
@@ -56,8 +56,16 @@ if signal and strategy.position_size == 0 and inRange and timeOk and not eodClos
     strategy.entry("Long", strategy.long)
     strategy.exit("Exit", "Long", limit=tp, stop=sl)
 
+// アラート
+if preSignal and not signal and inRange and timeOk and not eodClose and alertPreSignal
+    alert("ズレ手法: " + syminfo.ticker + " 陰線N-1本確定。次の陰線でエントリー候補。", alert.freq_once_per_bar)
+
+if signal and inRange and timeOk and not eodClose and alertEntrySignal
+    alert("ズレ手法: " + syminfo.ticker + " エントリーシグナル確定。" + str.tostring(close), alert.freq_once_per_bar)
+
 // 可視化
 plotshape(signal and inRange and timeOk and not eodClose, "シグナル", shape.triangleup, location.belowbar, color.green, size=size.small)
+plotshape(preSignal and not signal and inRange and timeOk and not eodClose, "事前シグナル", shape.triangleup, location.belowbar, color.orange, size=size.tiny)
 
 // 期間外グレーアウト
 bgcolor(not inRange ? color.new(color.gray, 90) : na)
