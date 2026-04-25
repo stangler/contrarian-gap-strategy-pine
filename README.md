@@ -1,4 +1,4 @@
-# ズレ手法 — PineScript v6 ストラテジー
+# Contrarian Gap Strategy — PineScript v6 ストラテジー
 
 ## 概要
 
@@ -38,7 +38,7 @@
 
 ```pine
 //@version=6
-strategy("ズレ手法", overlay=true, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+strategy("Contrarian Gap Strategy", overlay=true, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
 
 // 入力
 atrLen  = input.int(14, "ATR期間", minval=1)
