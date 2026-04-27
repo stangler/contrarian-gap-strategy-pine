@@ -14,12 +14,11 @@ slTicks  = input.int(10, "SL (Tick数)", minval=1)
 // 入力 - 陰線本数
 bearCount = input.int(4, "陰線本数", minval=2, maxval=6)
 
-// 入力 - アラート
-alertPreSignal   = input.bool(true, "事前アラート（N-1本陰線）")
-alertEntrySignal = input.bool(true, "エントリーシグナル アラート")
+// 入力 - アラート（事前アラートのみ）
+alertPreSignal = input.bool(true, "事前アラート（N-1本陰線）")
 
 // バックテスト期間
-startDate = input.time(timestamp("2026-04-01 00:00"), "開始日")
+startDate = input.time(timestamp("2025-01-01 00:00"), "開始日")
 endDate   = input.time(timestamp("2026-04-24 23:59"), "終了日")
 inRange   = time >= startDate and time <= endDate
 
@@ -34,10 +33,34 @@ timeOk = (hour > tradeStartHour or (hour == tradeStartHour and minute >= tradeSt
 // ATR
 atr = ta.atr(atrLen)
 
-// 陰線判定（本数可変）
+// 陰線判定
 bearish(i) => close[i] < open[i]
-signal    = bearish(1) and bearish(2) and (bearCount >= 3 ? bearish(3) : true) and (bearCount >= 4 ? bearish(4) : true) and (bearCount >= 5 ? bearish(5) : true) and (bearCount >= 6 ? bearish(6) : true)
-preSignal = bearish(1) and (bearCount >= 3 ? bearish(2) : true) and (bearCount >= 4 ? bearish(3) : true) and (bearCount >= 5 ? bearish(4) : true) and (bearCount >= 6 ? bearish(5) : true)
+
+// N本連続陰線シグナル
+var signal = false
+if bearCount == 2
+    signal := bearish(0) and bearish(1)
+else if bearCount == 3
+    signal := bearish(0) and bearish(1) and bearish(2)
+else if bearCount == 4
+    signal := bearish(0) and bearish(1) and bearish(2) and bearish(3)
+else if bearCount == 5
+    signal := bearish(0) and bearish(1) and bearish(2) and bearish(3) and bearish(4)
+else if bearCount == 6
+    signal := bearish(0) and bearish(1) and bearish(2) and bearish(3) and bearish(4) and bearish(5)
+
+// N-1本陰線（事前シグナル）
+var preSignal = false
+if bearCount == 2
+    preSignal := bearish(0)
+else if bearCount == 3
+    preSignal := bearish(0) and bearish(1)
+else if bearCount == 4
+    preSignal := bearish(0) and bearish(1) and bearish(2)
+else if bearCount == 5
+    preSignal := bearish(0) and bearish(1) and bearish(2) and bearish(3)
+else if bearCount == 6
+    preSignal := bearish(0) and bearish(1) and bearish(2) and bearish(3) and bearish(4)
 
 // 大引け判定（15:25バー = 15:30大引け）
 eodClose = hour == 15 and minute >= 25
@@ -56,12 +79,9 @@ if signal and strategy.position_size == 0 and inRange and timeOk and not eodClos
     strategy.entry("Long", strategy.long)
     strategy.exit("Exit", "Long", limit=tp, stop=sl)
 
-// アラート
+// 事前アラート（N-1本陰線）
 if preSignal and not signal and inRange and timeOk and not eodClose and alertPreSignal
     alert("ズレ手法: " + syminfo.ticker + " 陰線N-1本確定。次の陰線でエントリー候補。", alert.freq_once_per_bar)
-
-if signal and inRange and timeOk and not eodClose and alertEntrySignal
-    alert("ズレ手法: " + syminfo.ticker + " エントリーシグナル確定。" + str.tostring(close), alert.freq_once_per_bar)
 
 // 可視化
 plotshape(signal and inRange and timeOk and not eodClose, "シグナル", shape.triangleup, location.belowbar, color.green, size=size.small)
@@ -69,3 +89,92 @@ plotshape(preSignal and not signal and inRange and timeOk and not eodClose, "事
 
 // 期間外グレーアウト
 bgcolor(not inRange ? color.new(color.gray, 90) : na)
+
+// === レポートテーブル表示/非表示 ===
+showTable = input.bool(true, "レポートテーブル表示", group="レポート設定")
+
+// === レポートテーブル ===
+var table reportTable = table.new(
+     position.top_right, 
+     columns = 2, 
+     rows = 15, 
+     bgcolor = color.new(color.white, 50), 
+     border_width = 1, 
+     frame_color = color.gray,
+     border_color = color.gray
+)
+
+if showTable and (barstate.islastconfirmedhistory or barstate.islast)
+    // ヘッダー
+    table.cell(reportTable, 0, 0, "項目", text_color = color.white, bgcolor = color.new(#1e88e5, 0), text_size = size.normal)
+    table.cell(reportTable, 1, 0, "値",    text_color = color.white, bgcolor = color.new(#1e88e5, 0), text_size = size.normal)
+    
+    int r = 1
+    
+    // Net Profit
+    table.cell(reportTable, 0, r, "Net Profit", text_color = color.white)
+    table.cell(reportTable, 1, r, str.tostring(strategy.netprofit, "#,###.##"), 
+                text_color = strategy.netprofit >= 0 ? color.green : color.red)
+    r += 1
+    
+    // Gross Profit
+    table.cell(reportTable, 0, r, "Gross Profit", text_color = color.white)
+    table.cell(reportTable, 1, r, str.tostring(strategy.grossprofit, "#,###.##"), text_color = color.white)
+    r += 1
+    
+    // Gross Loss
+    table.cell(reportTable, 0, r, "Gross Loss", text_color = color.white)
+    table.cell(reportTable, 1, r, str.tostring(strategy.grossloss, "#,###.##"), text_color = color.white)
+    r += 1
+    
+    // Profit Factor
+    float pf = strategy.grossloss != 0 ? strategy.grossprofit / math.abs(strategy.grossloss) : na
+    table.cell(reportTable, 0, r, "Profit Factor", text_color = color.white)
+    table.cell(reportTable, 1, r, na(pf) ? "—" : str.tostring(pf, "#.##"), 
+                text_color = pf >= 1.5 ? color.green : (pf >= 1.0 ? color.orange : color.red))
+    r += 1
+    
+    // Win Rate
+    float win_rate = strategy.closedtrades > 0 ? (strategy.wintrades / strategy.closedtrades) * 100 : 0
+    table.cell(reportTable, 0, r, "Win Rate %", text_color = color.white)
+    table.cell(reportTable, 1, r, str.tostring(win_rate, "#.##") + "%", 
+                text_color = win_rate >= 50 ? color.green : color.red)
+    r += 1
+    
+    // Total Trades
+    table.cell(reportTable, 0, r, "Total Trades", text_color = color.white)
+    table.cell(reportTable, 1, r, str.tostring(strategy.closedtrades), text_color = color.white)
+    r += 1
+    
+    // Win Trades
+    table.cell(reportTable, 0, r, "Win Trades", text_color = color.white)
+    table.cell(reportTable, 1, r, str.tostring(strategy.wintrades), text_color = color.white)
+    r += 1
+    
+    // Loss Trades
+    table.cell(reportTable, 0, r, "Loss Trades", text_color = color.white)
+    table.cell(reportTable, 1, r, str.tostring(strategy.losstrades), text_color = color.white)
+    r += 1
+    
+    // Max Drawdown（パーセンテージ）
+    table.cell(reportTable, 0, r, "Max Drawdown %", text_color = color.white)
+    table.cell(reportTable, 1, r, str.tostring(strategy.max_drawdown, "#.##") + "%", text_color = color.white)
+    r += 1
+    
+    // Max Drawdown（金額ベース近似）
+    float max_dd_amount = strategy.initial_capital * (strategy.max_drawdown / 100)
+    table.cell(reportTable, 0, r, "Max Drawdown (金額)", text_color = color.white)
+    table.cell(reportTable, 1, r, str.tostring(max_dd_amount, "#,###.##"), text_color = color.white)
+    r += 1
+    
+    // DD/Profit Ratio（金額ベース）
+    float dd_profit_ratio = (strategy.netprofit != 0) ? (max_dd_amount / strategy.netprofit) * 100 : na
+    table.cell(reportTable, 0, r, "DD/Profit Ratio", text_color = color.white)
+    table.cell(reportTable, 1, r, na(dd_profit_ratio) ? "—" : str.tostring(dd_profit_ratio, "#.##") + "%", 
+                text_color = dd_profit_ratio > 50 ? color.red : (dd_profit_ratio > 30 ? color.orange : color.green))
+    r += 1
+    
+    // Avg Trade
+    float avg_trade = strategy.closedtrades > 0 ? strategy.netprofit / strategy.closedtrades : 0
+    table.cell(reportTable, 0, r, "Avg Trade", text_color = color.white)
+    table.cell(reportTable, 1, r, str.tostring(avg_trade, "#,###.##"), text_color = color.white)
