@@ -3,7 +3,7 @@ strategy("ズレ手法", overlay=true, default_qty_type=strategy.percent_of_equi
 
 // 入力 - TP/SL（Tickのみ）
 tpTicks = input.int(10, "TP (Tick数)", minval=1)
-slTicks = input.int(10, "SL (Tick数)", minval=1)
+slTicks = input.int(15, "SL (Tick数)", minval=1)
 
 // 入力 - 陰線本数
 bearCount = input.int(4, "陰線本数", minval=2, maxval=6)
