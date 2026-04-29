@@ -1,4 +1,4 @@
-# Contrarian Gap Strategy — PineScript v6 ストラテジー
+# ズレ手法 — PineScript v6 ストラテジー
 
 ## 概要
 
