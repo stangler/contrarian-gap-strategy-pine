@@ -2,11 +2,18 @@
 strategy("ズレ手法", overlay=true, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
 
 // 入力
-slTicks        = input.int(10, "SL (ナンピン2からTick数)", minval=1)
-tpTicks        = input.int(5,  "TP (平均取得価格 + Tick数)", minval=1)
-nappin1Ticks   = input.int(10, "ナンピン1 下落Tick（初回から）", minval=1)
-nappin2Ticks   = input.int(10, "ナンピン2 追加下落Tick（ナンピン1から）", minval=1)
-bearCount      = input.int(4,  "陰線本数", minval=2, maxval=6)
+useATR      = input.bool(true, "ATR動的モード使用")
+atrLen      = input.int(14, "ATR期間", group="ATR設定")
+atrMultSL   = input.float(2.5, "SL ATR倍率", group="ATR設定")
+atrMultTP   = input.float(1.0, "TP ATR倍率", group="ATR設定")
+atrMultNap1 = input.float(1.3, "ナンピン1 ATR倍率", group="ATR設定")
+atrMultNap2 = input.float(2.0, "ナンピン2 ATR倍率", group="ATR設定")
+
+slTicks        = input.int(15, "SL (固定)", minval=1)
+tpTicks        = input.int(15, "TP (固定)", minval=1)
+nappin1Ticks   = input.int(15, "ナンピン1 (固定)", minval=1)
+nappin2Ticks   = input.int(15, "ナンピン2 (固定)", minval=1)
+bearCount      = input.int(2,  "陰線本数", minval=2, maxval=6)
 alertPreSignal = input.bool(true, "事前アラート（N-1本陰線）")
 
 // バックテスト期間
@@ -52,32 +59,44 @@ else if bearCount == 5
 else if bearCount == 6
     preSignal := bearish(0) and bearish(1) and bearish(2) and bearish(3) and bearish(4)
 
-// 大引け判定
 eodClose = hour == 15 and minute >= 25
-
 tickSize = syminfo.mintick
+
+// ATR計算
+atrVal = ta.atr(atrLen)
+nap1TicksDyn = math.round(atrVal / tickSize * atrMultNap1)
+nap2TicksDyn = math.round(atrVal / tickSize * atrMultNap2)
+tpTicksDyn   = math.round(atrVal / tickSize * atrMultTP)
+slTicksDyn   = math.round(atrVal / tickSize * atrMultSL)
+
+// 使用値決定
+nappin1Use = useATR ? nap1TicksDyn : nappin1Ticks
+nappin2Use = useATR ? nap2TicksDyn : nappin2Ticks
+tpTicksUse = useATR ? tpTicksDyn   : tpTicks
+slTicksUse = useATR ? slTicksDyn   : slTicks
+
+// 合計SLティック（重要修正）
+totalSLTicks = nappin1Use + nappin2Use + slTicksUse
 
 // ナンピン管理
 var float entryPrice  = na
 var bool  nappin1Done = false
 var bool  nappin2Done = false
 
-// リセット（ポジなし）
 if strategy.position_size == 0
     entryPrice  := na
     nappin1Done := false
     nappin2Done := false
 
-// 初回エントリー価格キャプチャ（初回のみ）
 if strategy.position_size > 0 and na(entryPrice)
     entryPrice := strategy.position_avg_price
 
 // TP/SL 動的計算
 float avgPrice = strategy.position_avg_price
-float tpPrice  = strategy.position_size > 0 ? avgPrice + tpTicks * tickSize : na
-float slPrice  = na(entryPrice) ? na : entryPrice - (nappin1Ticks + nappin2Ticks + slTicks) * tickSize
+float tpPrice  = strategy.position_size > 0 ? avgPrice + tpTicksUse * tickSize : na
+float slPrice  = na(entryPrice) ? na : entryPrice - totalSLTicks * tickSize
 
-// TP/SL 判定（毎バー）
+// TP/SL 判定
 if strategy.position_size > 0 and not eodClose
     if not na(tpPrice) and high >= tpPrice
         strategy.close_all(comment="TP")
@@ -92,15 +111,15 @@ if eodClose and strategy.position_size > 0
 if signal and strategy.position_size == 0 and inRange and timeOk and not eodClose
     strategy.entry("Long", strategy.long)
 
-// ナンピン1（初回から nappin1Ticks 下）
+// ナンピン1
 if strategy.position_size > 0 and not nappin1Done and not na(entryPrice) and
-   low <= entryPrice - nappin1Ticks * tickSize and inRange and timeOk and not eodClose
+   low <= entryPrice - nappin1Use * tickSize and inRange and timeOk and not eodClose
     strategy.entry("Nappin1", strategy.long)
     nappin1Done := true
 
-// ナンピン2（初回から nappin1Ticks + nappin2Ticks 下）
+// ナンピン2
 if strategy.position_size > 0 and nappin1Done and not nappin2Done and not na(entryPrice) and
-   low <= entryPrice - (nappin1Ticks + nappin2Ticks) * tickSize and inRange and timeOk and not eodClose
+   low <= entryPrice - (nappin1Use + nappin2Use) * tickSize and inRange and timeOk and not eodClose
     strategy.entry("Nappin2", strategy.long)
     nappin2Done := true
 
@@ -119,10 +138,7 @@ bgcolor(not inRange ? color.new(color.gray, 90) : na)
 // === レポートテーブル ===
 showTable = input.bool(true, "レポートテーブル表示", group="レポート設定")
 
-var table reportTable = table.new(
-     position.top_right, columns = 2, rows = 15,
-     bgcolor = color.new(color.white, 80), border_width = 1,
-     frame_color = color.gray, border_color = color.gray)
+var table reportTable = table.new(position.top_right, columns = 2, rows = 20, bgcolor = color.new(color.white, 80), border_width = 1, frame_color = color.gray, border_color = color.gray)
 
 if showTable and (barstate.islastconfirmedhistory or barstate.islast)
     float max_dd_amount = strategy.max_drawdown
@@ -133,9 +149,9 @@ if showTable and (barstate.islastconfirmedhistory or barstate.islast)
 
     int r = 1
 
+    // 既存レポート（省略せず全部残す）
     table.cell(reportTable, 0, r, "Net Profit", text_color = color.white)
-    table.cell(reportTable, 1, r, str.tostring(strategy.netprofit, "#,###.##"),
-               text_color = strategy.netprofit >= 0 ? color.green : color.red)
+    table.cell(reportTable, 1, r, str.tostring(strategy.netprofit, "#,###.##"), text_color = strategy.netprofit >= 0 ? color.green : color.red)
     r += 1
 
     table.cell(reportTable, 0, r, "Gross Profit", text_color = color.white)
@@ -148,14 +164,12 @@ if showTable and (barstate.islastconfirmedhistory or barstate.islast)
 
     float pf = strategy.grossloss != 0 ? strategy.grossprofit / math.abs(strategy.grossloss) : na
     table.cell(reportTable, 0, r, "Profit Factor", text_color = color.white)
-    table.cell(reportTable, 1, r, na(pf) ? "—" : str.tostring(pf, "#.##"),
-               text_color = pf >= 1.5 ? color.green : (pf >= 1.0 ? color.orange : color.red))
+    table.cell(reportTable, 1, r, na(pf) ? "—" : str.tostring(pf, "#.##"), text_color = pf >= 1.5 ? color.green : (pf >= 1.0 ? color.orange : color.red))
     r += 1
 
     float win_rate = strategy.closedtrades > 0 ? (strategy.wintrades / strategy.closedtrades) * 100 : 0
     table.cell(reportTable, 0, r, "Win Rate %", text_color = color.white)
-    table.cell(reportTable, 1, r, str.tostring(win_rate, "#.##") + "%",
-               text_color = win_rate >= 50 ? color.green : color.red)
+    table.cell(reportTable, 1, r, str.tostring(win_rate, "#.##") + "%", text_color = win_rate >= 50 ? color.green : color.red)
     r += 1
 
     table.cell(reportTable, 0, r, "Total Trades", text_color = color.white)
@@ -181,7 +195,23 @@ if showTable and (barstate.islastconfirmedhistory or barstate.islast)
     float dd_profit_ratio = strategy.netprofit != 0 ? (max_dd_amount / strategy.netprofit) * 100 : na
     table.cell(reportTable, 0, r, "DD/Profit Ratio", text_color = color.white)
     table.cell(reportTable, 1, r, na(dd_profit_ratio) ? "—" : str.tostring(dd_profit_ratio, "#.##") + "%",
-               text_color = na(dd_profit_ratio) ? color.white :
-                            strategy.netprofit <= 0 ? color.red :
-                            dd_profit_ratio > 50 ? color.red :
-                            dd_profit_ratio > 30 ? color.orange : color.green)
+               text_color = na(dd_profit_ratio) ? color.white : strategy.netprofit <= 0 ? color.red : dd_profit_ratio > 50 ? color.red : dd_profit_ratio > 30 ? color.orange : color.green)
+    r += 1
+
+    // ATR動的ティック表示（合計SL追加）
+    if useATR
+        table.cell(reportTable, 0, r, "ATR TP ticks", text_color = color.white)
+        table.cell(reportTable, 1, r, str.tostring(tpTicksUse), text_color = color.lime)
+        r += 1
+
+        table.cell(reportTable, 0, r, "ATR SL ticks", text_color = color.white)
+        table.cell(reportTable, 1, r, str.tostring(totalSLTicks), text_color = color.red)   // ← ここ修正：合計表示
+        r += 1
+
+        table.cell(reportTable, 0, r, "ATR Nap1", text_color = color.white)
+        table.cell(reportTable, 1, r, str.tostring(nappin1Use), text_color = color.orange)
+        r += 1
+
+        table.cell(reportTable, 0, r, "ATR Nap2", text_color = color.white)
+        table.cell(reportTable, 1, r, str.tostring(nappin2Use), text_color = color.orange)
+        r += 1
