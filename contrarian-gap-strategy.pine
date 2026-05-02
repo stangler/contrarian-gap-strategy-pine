@@ -4,10 +4,10 @@ strategy("ズレ手法", overlay=true, default_qty_type=strategy.percent_of_equi
 // 入力
 useATR      = input.bool(true, "ATR動的モード使用")
 atrLen      = input.int(14, "ATR期間", group="ATR設定")
-atrMultSL   = input.float(2.5, "SL ATR倍率", group="ATR設定")
-atrMultTP   = input.float(1.0, "TP ATR倍率", group="ATR設定")
+atrMultSL   = input.float(2, "SL ATR倍率", group="ATR設定")
+atrMultTP   = input.float(0.8, "TP ATR倍率", group="ATR設定")
 atrMultNap1 = input.float(1.3, "ナンピン1 ATR倍率", group="ATR設定")
-atrMultNap2 = input.float(2.0, "ナンピン2 ATR倍率", group="ATR設定")
+atrMultNap2 = input.float(1.5, "ナンピン2 ATR倍率", group="ATR設定")
 
 slTicks        = input.int(15, "SL (固定)", minval=1)
 tpTicks        = input.int(15, "TP (固定)", minval=1)
