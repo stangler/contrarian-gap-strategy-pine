@@ -2,79 +2,162 @@
 
 ## 概要
 
-5分足チャートで陰線が連続した後、次の足の始値でロングエントリーする逆張り手法。
-陰線本数・TP/SL・ナンピン幅・取引時間帯はすべてインプットで変更可能。デイトレ専用（大引けで強制決済）。
+5分足 逆張り戦略。  
+連続陰線後、次足始値ロング。
 
-## ATR動的モード（新機能）
+- 条件: 直近N本 陰線（`close < open`）
+- エントリー: 次足始値
+- ナンピン: 最大2回
+- 決済:
+  - TP: 平均取得価格 + tick
+  - SL: 初回価格基準 固定
+  - 大引け: 強制クローズ（15:25）
 
-銘柄ボラティリティに合わせてTP/SL/ナンピンを自動調整。
+---
 
-**使い方**
-1. `ATR動的モード使用` → **true**
-2. 各ATR倍率を調整（JX金属例）
-   - SL ATR倍率: 2
-   - TP ATR倍率: 0.8
-   - ナンピン1 ATR倍率: 1.3
-   - ナンピン2 ATR倍率: 1.5
-3. 右上テーブル下部に**現在ティック数**が常時表示される
+## ATR動的モード
 
-**低ボラ銘柄** → ATR動的モード=false + 固定15推奨  
-**高ボラ銘柄**（JX金属など） → ATR動的モード=true + 上記倍率
+ボラ適応 TP/SL/ナンピン 自動調整。
 
-## エントリー条件
+- ATR期間: 14
+- SL倍率: 2.0
+- TP倍率: 0.8
+- ナンピン1: 1.3
+- ナンピン2: 1.5
 
-- 時間足: 5分足
-- 方向: ロング（買い）
-- 条件: 直近N本がすべて陰線（`close < open`）※N は可変
-- エントリー: 条件成立バー確定後、次の足の始値で即執行
+指針:
+- 低ボラ: OFF + 固定値
+- 高ボラ: ON + ATR倍率調整
 
-## ナンピン
+---
 
-エントリー後、下落が続く場合に最大2回ナンピンを実施（初回価格基準）。
+## 使い方（Pine）
 
-## 決済条件
+1. TradingViewで5分足チャート開く  
+2. スクリプト適用  
+3. パラメータ調整  
+4. Strategy Testerで結果確認  
 
-- **TP**: 平均取得価格 + Tick数（ナンピン後は平均値が下がるため自動調整）
-- **SL**: 初回エントリー価格から -(ナンピン1 + ナンピン2 + SL) の固定水準
-- **大引け強制決済**: 15:25バーで未決済ポジションを強制クローズ
+---
 
-## インプット設定
+## Backtest Scraper
 
-### ATR設定グループ
-| パラメータ | デフォルト | 説明 |
-|-----------|-----------|------|
-| ATR動的モード使用 | true | ONでATR自動計算 |
-| ATR期間 | 14 | ATR(14)推奨 |
-| SL ATR倍率 | 2 | 高ボラ用2.0〜3.0 |
-| TP ATR倍率 | 0.8 | 0.7〜1.2程度 |
-| ナンピン1 ATR倍率 | 1.3 | 1.0〜1.5 |
-| ナンピン2 ATR倍率 | 1.5 | 1.5〜2.5 |
+TradingView Strategy Tester数値 → CSV保存。  
+半自動（手動操作 必須）
 
-### 固定設定グループ
-| パラメータ | デフォルト | 説明 |
-|-----------|-----------|------|
-| SL (固定) | 15 | ATRモードOFF時使用 |
-| TP (固定) | 15 | ATRモードOFF時使用 |
-| ナンピン1 (固定) | 15 | ATRモードOFF時使用 |
-| ナンピン2 (固定) | 15 | ATRモードOFF時使用 |
-| 陰線本数 | 2 | 連続陰線の判定本数（2〜6） |
+---
 
-**その他設定**（取引時間・バックテスト期間など変更なし）
+## 前提
 
-## 可視化・レポートテーブル
+- Chrome remote debugging起動
+- TradingViewログイン済
+- チャート + Strategy適用済
+- watchlistに銘柄追加済
 
-- 緑/赤ライン: TP/SL
-- 右上テーブル: 従来項目 + **ATR TP/SL/Nap1/Nap2 ticks**（動的モード時）
+---
 
-## 使い方
+## 実行手順（固定）
 
-1. 5分足チャートに適用
-2. ATR動的モードをON/OFFで切替
-3. 高ボラ銘柄は右上テーブル見ながら倍率微調整
-4. バックテストで確認
+### STEP 1: Chrome起動（PowerShell A）
 
-## 今後の改善候補
+※ このウィンドウ閉じない
 
-- RSI・出来高フィルター追加
-- 時間帯別成績比較
-- パラメータ最適化
+```powershell
+Get-Process chrome -ErrorAction SilentlyContinue | Stop-Process -Force
+Start-Sleep 2
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\Temp\tv-profile" --profile-directory=Default
+````
+
+---
+
+### STEP 2: TradingViewログイン
+
+[https://jp.tradingview.com/](https://jp.tradingview.com/)
+
+---
+
+### STEP 3: スクリプト実行（PowerShell B）
+
+```powershell
+cd C:\Users\payor\Desktop\ContrarianGap_Strategy_PineScript\contrarian-gap-strategy-pine
+uv run python tv_backtest_scraper.py
+```
+
+---
+
+## 実行中操作（必須）
+
+銘柄ごと:
+
+1. Strategy Testerタブ開く
+2. 必要なら戦略再適用
+3. 数値更新確認
+4. Enter押下
+
+---
+
+## 入力
+
+`urls.txt`
+
+```txt
+BTCUSD
+ETHUSD
+# コメント可
+```
+
+---
+
+## 出力
+
+```csv
+銘柄, BTCUSD
+指標, 値
+純利益, xxxx
+勝率, xx%
+ドローダウン, xxxx
+```
+
+ファイル:
+
+```
+SYMBOL_YYYYMMDD.csv
+```
+
+---
+
+## 抽出ロジック
+
+* 画面全テキスト走査（TreeWalker）
+* キーワード一致抽出:
+
+  * 損益 / 勝率 / トレード / ドローダウン / 純利益 / 期待
+* 「ラベル + 次行」ペア取得
+
+---
+
+## 制約
+
+* UI依存（TradingView変更で破損）
+* 日本語UI前提
+* 完全自動不可（手動更新必要）
+* watchlist構造依存
+
+---
+
+## トラブル
+
+データ取得失敗
+→ Strategy Tester未更新 / タブ未選択
+
+銘柄切替できない
+→ watchlist未登録
+
+接続失敗
+→ Chrome未起動 / ポート不一致
+
+---
+
+## 改善余地
+
+DOMセレクタ固定化（class依存回避）
