@@ -15,13 +15,18 @@ def extract_from_csv(csv_file):
         # 2行目はヘッダー（指標,値）なのでスキップ
         next(reader, None)
         
-        # 指標と値を辞書に格納（最初の出現のみを保持）
+        # 指標と値を辞書に格納
+        seen_count = {}
         for row in reader:
             if len(row) >= 2:
                 key = row[0].strip()
                 value = row[1].strip()
-                # 既にキーが存在する場合はスキップ（最初の値を保持）
-                if key not in data:
+                seen_count[key] = seen_count.get(key, 0) + 1
+                # 「勝ちトレード」は2番目の出現値を使用、それ以外は最初の出現のみ保持
+                if key == '勝ちトレード':
+                    if seen_count[key] == 2:
+                        data[key] = value
+                elif key not in data:
                     data[key] = value
     
     return data
@@ -54,37 +59,51 @@ def update_excel(csv_data_list):
             
             if csv_data:
                 print(f"  Found CSV data: {list(csv_data.keys())}")
-                # 総損益
+                # 列C: 総損益
                 if '総損益' in csv_data:
-                    row[2].value = csv_data['総損益']  # 列C
+                    row[2].value = csv_data['総損益']
                     print(f"  Set 総損益: {csv_data['総損益']}")
                 else:
                     print(f"  Warning: '総損益' not found in CSV data")
                 
-                # 最大ドローダウン
+                # 列D: 最大ドローダウン
                 if '最大ドローダウン' in csv_data:
-                    row[3].value = csv_data['最大ドローダウン']  # 列D
+                    row[3].value = csv_data['最大ドローダウン']
                     print(f"  Set 最大ドローダウン: {csv_data['最大ドローダウン']}")
                 else:
                     print(f"  Warning: '最大ドローダウン' not found in CSV data")
                 
-                # トレード総数
+                # 列E: トレード総数
                 if 'トレード総数' in csv_data:
                     row[4].value = csv_data['トレード総数']
                     print(f"  Set トレード総数: {csv_data['トレード総数']}")
                 else:
                     print(f"  Warning: 'トレード総数' not found in CSV data")
                 
-                # 勝ちトレード
+                # 列F: 勝ちトレード
                 if '勝ちトレード' in csv_data:
                     row[5].value = csv_data['勝ちトレード']
                     print(f"  Set 勝ちトレード: {csv_data['勝ちトレード']}")
                 else:
                     print(f"  Warning: '勝ちトレード' not found in CSV data")
                 
-                # プロフィットファクター
+                # 列G: 負けトレード
+                if '負けトレード' in csv_data:
+                    row[6].value = csv_data['負けトレード']
+                    print(f"  Set 負けトレード: {csv_data['負けトレード']}")
+                else:
+                    print(f"  Warning: '負けトレード' not found in CSV data")
+                
+                # 列H: 勝率
+                if '勝率' in csv_data:
+                    row[7].value = csv_data['勝率']
+                    print(f"  Set 勝率: {csv_data['勝率']}")
+                else:
+                    print(f"  Warning: '勝率' not found in CSV data")
+                
+                # 列I: プロフィットファクター
                 if 'プロフィットファクター' in csv_data:
-                    row[6].value = csv_data['プロフィットファクター']
+                    row[8].value = csv_data['プロフィットファクター']
                     print(f"  Set プロフィットファクター: {csv_data['プロフィットファクター']}")
                 else:
                     print(f"  Warning: 'プロフィットファクター' not found in CSV data")
