@@ -1,3 +1,4 @@
+```markdown
 # ズレ手法 — PineScript v6 ストラテジー
 
 ## 概要
@@ -83,9 +84,9 @@
 ## ワークフロー
 
 ```
-TradingView Strategy Tester
+urls.txt（銘柄リスト）
         ↓
-tv_backtest_scraper.py（Chrome経由で自動取得）
+tv_backtest_scraper.py（Playwright自動操作 / Spaceキーで銘柄切替）
         ↓
 SYMBOL_YYYYMMDD.csv（銘柄ごと）
         ↓
@@ -99,40 +100,30 @@ extract_data.py（全CSV → format.xlsx 一括転記）
 | ファイル | 役割 |
 |---------|------|
 | `contrarian-gap-strategy.pine` | PineScript v6 ストラテジー本体 |
-| `tv_backtest_scraper.py` | TradingViewバックテスト結果を自動スクレイプ |
+| `tv_backtest_scraper.py` | Playwrightでバックテスト結果を全自動スクレイプ |
 | `extract_data.py` | 全CSVをformat.xlsxへ一括転記 |
-| `inspect_data.py` | CSV・Excel内容の確認用 |
-| `urls.txt` | スクレイプ対象銘柄URLリスト |
+| `urls.txt` | スクレイプ対象銘柄リスト（銘柄コードのみ、1行1銘柄） |
 | `format.xlsx` | バックテスト結果まとめ（出力先） |
 
 ---
 
 ## 実行手順
 
-### 1. Chrome起動（デバッグポート付き）
+### 1. スクレイパー実行
 
 ```powershell
-Get-Process chrome | Stop-Process -Force
-Start-Sleep 2
-& "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\Temp\tv-profile"
-```
-
-### 2. TradingView準備
-
-1. TradingViewにログイン
-2. 対象銘柄チャートを開き、ストラテジー適用
-3. Strategy Testerを開く
-4. `urls.txt` に対象銘柄URL登録済みであることを確認
-
-### 3. スクレイパー実行
-
-```powershell
+cd C:\Users\payor\Desktop\ContrarianGap_Strategy_PineScript\contrarian-gap-strategy-pine
 uv run python tv_backtest_scraper.py
 ```
 
+- Playwright管理のChromeが自動起動
+- セッションは `C:\Temp\tv-profile-pw` に保存
+- **初回のみ**: ログイン + ストラテジー適用済みチャートを開く + Strategy Testerパネルを表示 → Enter
+- **2回目以降**: そのままEnterで自動実行開始
+
 実行後、銘柄ごとに `SYMBOL_YYYYMMDD.csv` が生成される。
 
-### 4. Excel一括転記
+### 2. Excel一括転記
 
 ```powershell
 uv run python extract_data.py
@@ -143,11 +134,22 @@ uv run python extract_data.py
 - 勝ちトレード数 / 負けトレード数 / 勝率
 - プロフィットファクター
 
-### 5. 確認（任意）
+> **注意**: `format.xlsx` を開いたまま実行するとPermissionErrorが発生するため、実行前に閉じること。
 
-```powershell
-uv run python inspect_data.py
+---
+
+## urls.txt フォーマット
+
 ```
+# 銘柄コードのみ記載（TSE:不要）
+186A
+268A
+3103
+9984
+```
+
+- `#` 始まりの行はコメント（スキップ）
+- 取引所プレフィックスは不要（スクレイパー側で `TSE:` を自動付与）
 
 ---
 
@@ -167,9 +169,28 @@ uv run python inspect_data.py
 
 ---
 
+## CSV フォーマット（tv_backtest_scraper.py 出力）
+
+```
+186A
+指標,値
+純利益,純利益率
+総損益,"+16,084.00"
+最大ドローダウン,"4,430.00"
+トレード総数,15
+...
+```
+
+- 1行目: 銘柄コード
+- 2行目: ヘッダー（固定）
+- 3行目以降: 指標,値
+
+---
+
 ## 注意事項
 
 - TradingViewのUI変更でスクレイパーが破損する可能性あり
 - 日本語UI前提（指標名が日本語でCSVに出力される）
-- Strategy Testerの結果反映にEnter押下が必要な場合あり
-- `format.xlsx` を開いたまま `extract_data.py` を実行するとPermissionErrorが発生するため、実行前に閉じること
+- 再計算待機時間はデフォルト6秒（`WAIT_RECALC`）。回線が遅い場合は8〜10に増やす
+- スペースキーで検索バーが起動しない場合は `switch_symbol` 内の `"Space"` を `"/"` に変更
+```
