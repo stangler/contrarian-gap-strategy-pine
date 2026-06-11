@@ -11,16 +11,13 @@ URLS_FILE    = Path("urls.txt")
 OUTPUT_DIR   = Path(".")
 CHART_URL    = "https://jp.tradingview.com/chart/"
 USER_DATA    = r"C:\Temp\tv-profile-pw"   # セッション保存先
-WAIT_RECALC  = 6      # バックテスト再計算待機（秒）
+WAIT_RECALC  = 10      # バックテスト再計算待機（秒）
 WAIT_SEARCH  = 1.5    # 検索ダイアログ安定待機（秒）
 EXCHANGE     = "TSE"
 # ==========================
 
-KEYWORDS = [
-    "純利益", "総損益", "最大ドローダウン",
-    "トレード総数", "勝ちトレード", "負けトレード",
-    "勝率", "プロフィットファクター", "期待値"
-]
+# Strategy Testerのテキストラベル（日本語DOM）
+DEBUG_SCRAPE = False  # Trueにすると全テキストノードをdebug.txtに出力
 
 def load_symbols() -> list[str]:
     lines = URLS_FILE.read_text(encoding="utf-8").splitlines()
@@ -57,35 +54,86 @@ async def wait_for_chart_update(page, symbol: str):
     await page.wait_for_timeout(int(WAIT_RECALC * 1000))
 
 async def scrape_backtest(page) -> list:
-    return await page.evaluate("""
-    (keywords) => {
-        const texts = [];
-        const walker = document.createTreeWalker(
-            document.body, NodeFilter.SHOW_TEXT
-        );
+    """
+    DOMテキスト構造（確認済み）:
+      主要統計: 総損益→+NNN, 最大ドローダウン→NNN, 勝ちトレード→NN.NN%(勝率), プロフィットファクター→N.NNN
+      トレード分布: "トレード分布" → "33" → "トレード総数" → "勝ち" → "21トレード" → ...
+    """
+    texts = await page.evaluate("""
+    () => {
+        const out = [];
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
         let node;
         while (node = walker.nextNode()) {
             const t = node.textContent.trim();
-            if (t) texts.push(t);
+            if (t) out.push(t);
         }
-        const result = [];
-        const seen = new Set();
-        for (let i = 0; i < texts.length - 1; i++) {
-            const key = texts[i];
-            if (!keywords.some(k => key.includes(k))) continue;
-            const val = texts[i + 1];
-            if (key.includes("勝ちトレード") && !seen.has("勝ちトレード_first")) {
-                seen.add("勝ちトレード_first");
-                continue; // 1回目（勝率%）スキップ
-            }
-            if (!seen.has(key)) {
-                seen.add(key);
-                result.push([key, val]);
-            }
-        }
-        return result;
+        return out;
     }
-    """, KEYWORDS)
+    """)
+
+    if DEBUG_SCRAPE:
+        with open("debug_texts.txt", "w", encoding="utf-8") as f:
+            f.write("\n".join(texts))
+        print(f"  [DEBUG] テキストノード {len(texts)}件 → debug_texts.txt")
+
+    import re as _re
+
+    def is_num(s):
+        c = s.replace(",", "").replace("\u202a", "").replace("\u202c", "").strip()
+        return bool(_re.match(r'^[+\-\u2212]?\d+\.?\d*%?$', c))
+
+    def is_int(s):
+        """%なし整数のみ"""
+        c = s.replace(",", "").replace("\u202a", "").replace("\u202c", "").strip()
+        return bool(_re.match(r'^[+\-\u2212]?\d+$', c))
+
+    def next_num(i, ahead=4):
+        for j in range(i+1, min(i+1+ahead, len(texts))):
+            if is_num(texts[j]):
+                return texts[j]
+        return None
+
+    result = {}
+
+    for i, t in enumerate(texts):
+        # 主要統計ブロック
+        if t == "総損益" and "総損益" not in result:
+            v = next_num(i)
+            if v: result["総損益"] = v
+
+        elif t == "最大ドローダウン" and "最大ドローダウン" not in result:
+            v = next_num(i)
+            if v: result["最大ドローダウン"] = v
+
+        elif t == "勝ちトレード" and "勝率" not in result:
+            v = next_num(i)
+            if v: result["勝率"] = v
+
+        elif t == "プロフィットファクター" and "プロフィットファクター" not in result:
+            v = next_num(i)
+            if v: result["プロフィットファクター"] = v
+
+        # トレード分布ブロック
+        # "33" → "トレード総数" なので直前ノードを取る
+        elif t == "トレード総数" and "トレード総数" not in result:
+            if i > 0 and is_int(texts[i-1]):
+                result["トレード総数"] = texts[i-1]
+
+        elif t == "勝ち" and "勝ちトレード" not in result:
+            if i+1 < len(texts):
+                m = _re.match(r'^(\d+)トレード', texts[i+1])
+                if m: result["勝ちトレード"] = m.group(1)
+
+        elif t == "負け" and "負けトレード" not in result:
+            if i+1 < len(texts):
+                m = _re.match(r'^(\d+)トレード', texts[i+1])
+                if m: result["負けトレード"] = m.group(1)
+
+    if DEBUG_SCRAPE:
+        print(f"  [DEBUG] 抽出結果: {result}")
+
+    return list(result.items())
 
 async def main():
     symbols = load_symbols()
