@@ -1,0 +1,923 @@
+8306
+1
+分
+3
+分
+5
+分
+15
+分
+30
+分
+日
+週
+月
+インジケーター
+アラート
+リプレイ
+シングル
+保存
+1
+2
+シ
+指
+投稿
+8306
+1
+分
+3
+分
+5
+分
+15
+分
+30
+分
+日
+週
+月
+シングル
+保存
+1
+2
+シ
+指
+投稿
+8306
+1
+分
+3
+分
+5
+分
+15
+分
+30
+分
+日
+週
+月
+シングル
+保存
+1
+2
+シ
+指
+投稿
+トレード
+投稿
+7
+8306
+三菱ＵＦＪフィナンシャル・グループ
+5
+TSE
+始値
+3,141
+高値
+3,141
+安値
+3,141
+終値
+3,141
+3,141
+∅
+−5 (−0.16%)
+出来高
+5.77 M
+−42 (−1.32%)
+...
+...
+5
+VRVP
+∅
+∅
+∅
+出来高
+統合版：VWAP & Zig Zag & 単日四本値
+2
+1
+2
+2
+close
+20,250,611
+2
+10
+右上
+1
+2
+ズレ手法
+14
+2.5
+1
+1.3
+2
+15
+15
+15
+15
+2
+9
+0
+9
+30
+0.0
+0.0
+∅
+∅
+寄付強気戦略
+0.1
+30
+JPY
+A
+L
+日付範囲
+1日
+5日
+1ヶ月
+3ヶ月
+6ヶ月
+年初来
+1年
+5年
+すべて
+19:25:49 UTC+9
+配当調整
+監視銘柄
+指
+監
+場
+米
+シンボル
+現在値
+変動
+変動率
+1
+186A
+R
+市場クローズ
+1,810
+61
+3.49%
+8.56 M
+2
+268A
+R
+市場クローズ
+2,469
+79
+3.31%
+4.73 M
+2
+290A
+R
+市場クローズ
+1,441
+57
+4.12%
+2.05 M
+4
+485A
+R
+市場クローズ
+2,497
+185
+8.00%
+8.06 M
+3
+3103
+R
+市場クローズ
+1,133
+−83
+−6.83%
+3.29 M
+3
+3436
+R
+市場クローズ
+3,408
+208
+6.50%
+18.15 M
+3
+3687
+R
+市場クローズ
+2,305
+−82
+−3.44%
+4.21 M
+3
+3905
+R
+市場クローズ
+4,340
+25
+0.58%
+2.29 M
+4
+4259
+R
+市場クローズ
+991
+26
+2.69%
+1.73 M
+4
+4392
+R
+市場クローズ
+1,421
+−167
+−10.52%
+9.42 M
+5
+5016
+R
+市場クローズ
+3,341
+−51
+−1.50%
+18.55 M
+5
+5803
+R
+市場クローズ
+4,142
+−52
+−1.24%
+51.25 M
+6
+6232
+R
+市場クローズ
+1,828
+−74
+−3.89%
+641.6 K
+6
+6315
+R
+市場クローズ
+2,653
+−51
+−1.89%
+4.22 M
+6
+6501
+R
+市場クローズ
+4,655
+−129
+−2.70%
+15.18 M
+6
+6526
+R
+市場クローズ
+2,294.0
+−8.5
+−0.37%
+7.56 M
+6
+6613
+R
+市場クローズ
+2,409
+37
+1.56%
+5.65 M
+6
+6702
+R
+市場クローズ
+3,367
+5
+0.15%
+5.85 M
+6
+6723
+R
+市場クローズ
+4,262
+−46
+−1.07%
+15.46 M
+6
+6752
+R
+市場クローズ
+3,767
+11
+0.29%
+9.32 M
+6
+6762
+R
+市場クローズ
+3,561
+−79
+−2.17%
+14.43 M
+6
+6965
+R
+市場クローズ
+2,427.5
+59.0
+2.49%
+5.39 M
+6
+6971
+R
+市場クローズ
+3,596
+39
+1.10%
+8.9 M
+7
+7011
+R
+市場クローズ
+3,494
+−84
+−2.35%
+18.08 M
+7
+7012
+R
+市場クローズ
+2,749.5
+−110.0
+−3.85%
+13.83 M
+7
+7013
+R
+市場クローズ
+2,358.0
+−81.5
+−3.34%
+16.05 M
+8
+8058
+R
+市場クローズ
+4,605
+−10
+−0.22%
+6.91 M
+8
+8306
+R
+市場クローズ
+3,141
+−42
+−1.32%
+43.89 M
+8
+8306
+三菱ＵＦＪフィナンシャル・グループ
+TSE
+金融
+主要銀行
+3,141
+R
+JPY
+−42
+−1.32%
+市場クローズ
+最終更新: 15:30 GMT+9
+3,080
+今日のレンジ
+3,148
+1,921.0
+52週レンジ
+3,305
+マーケット＠ランダム―白熱する時価総額首位争い
+主要統計
+次の決算発表
+54 日後
+出来高
+‪43.89 M‬
+平均出来高 (30)
+‪43.48 M‬
+時価総額
+‪35.59 T‬
+決算
+54
+Q1 '25
+Q2 '25
+Q3 '25
+Q4 '25
+Q1 '26
+‪0.00‬
+‪17.00‬
+‪34.00‬
+‪51.00‬
+‪68.00‬
+結果
+予想
+詳細情報
+配当
+40.34%
+利益剰余金
+配当性向 (直近12か月)
+配当利回り (直近12ヶ月)
+2.70%
+次回配当金
+48.00
+次回の配当落ち日
+2026年9月29日
+次回支払日
+2026年9月29日
+詳細情報
+損益計算書
+年間
+四半期
+'21
+'22
+'23
+'24
+'25
+‪0.00‬
+‪‪2.00 T‬‬
+‪‪4.00 T‬‬
+‪‪6.00 T‬‬
+‪‪8.00 T‬‬
+純収益
+純利益
+純利益率
+%
+財務指標詳細
+パフォーマンス
+0.13%
+1W
+8.85%
+1M
+21.18%
+3M
+27.81%
+6M
+24.72%
+YTD
+59.85%
+1Y
+季節性
+2026
+2025
+2024
+季節性の詳細
+テクニカル
+中立
+売り
+買い
+強い売り
+強い買い
+強い売り
+売り
+中立
+買い
+強い買い
+テクニカル詳細
+アナリストの評価
+中立
+売り
+買い
+強い売り
+強い買い
+強い売り
+売り
+中立
+買い
+強い買い
+1年後の目標価格
+3,507
+(11.65%)
+予想を見る
+最終利回り上位の債券
+2044年3月10日
+5.52%
+2039年7月18日
+5.44%
+2039年3月7日
+5.27%
+その他の債券
+プロファイル
+ウェブサイト
+mufg.jp
+従業員数 (通期)
+—
+ISIN
+JP3902900004
+CUSIP
+—
+FIGI
+BBG000D2VLN4
+CFIコード
+ESVUFR
+Mitsubishi UFJ Financial Group, Inc. operates as a holding company, which provides financial services through its subsidiaries. It operates through the following segments: Retail & Digital Business Division, Corporate & Wealth Management Business Division, Corporate Banking Business Division, Global Commercial Banking Business Division, Asset Management Business Division, Global CIB Business Division, Markets Business Division and Others. The Retail & Digital Business segment manages Individual customers (excluding wealth management) through real, remote, and digital channels. Provision of financial services to corporations. The Corporate and Wealth Management Division segment Providing financial services to corporate and wealth management clients. The Corporate Banking Division segment Providing financial services to major Japanese companies in Japan and overseas. The Global Commercial Banking Division segment Providing financial services to individuals and small and medium-sized enterprises through overseas investment partners such as commercial banks. The Trusted Assets Division segment Providing asset management, asset administration, and pension services to domestic and international investors, asset management companies, and operating companies. The Global CIB Business Unit segment Providing financial services to non-Japanese large corporations. The Market Business Division segment Providing foreign exchange, financial, and securities services to clients, market trading, and liquidity and cash flow management services. The Others segment management duties and other tasks not belonging to the above business divisions. The company was founded on April 2, 2001 and is headquartered in Tokyo, Japan.
+公開
+プライベート
+プライベートメッセージはまだありません
+日本個別株
+fpkubota
+6857 1D,
+2025 6月 15
+個別株のチャートや価格の表示が違う場合の対処法はありますか？6857・6890・9107など間違った株価があります
+kmtrm
+1944 1D,
+2025 6月 15
+同じく
+daisuke_gewinn
+6857 5,
+2025 6月 30
+だいたい、配信元のICE Data servicesの問題なので、しばらく放置しておくしかない感じです。
+daisuke_gewinn
+7603 5,
+2025 6月 30
+ビットコイン買うだけ企業のメタプラが一兆円企業になりそうなので、第2第3のメタプラ目指してあちこちでビットコイン買うだけ企業が・・。
+私もお遊びでマックハウスわーいって買ったら臨時総会開く必要があるってなって・・・となりました。
+突っ込み安したらちょっとだけ買ってなくなってもいいやっていう気持ちで放置してみようかな・・お祭り体験したい・・。
+NotaRobot69
+USDJPY 3D,
+2025 9月 30
+そして３ヶ月が過ぎたのだった
+daisuke_gewinn
+285A 1D,
+2025 11月 11
+お祭り体験できなかった！4万円どぶに捨てた！
+さて、キオクシアの筆頭株主のPO狙いで空売りして担がれてます・・。〇ぬ・・。
+NotaRobot69
+NK225M1! 3D,
+2025 11月 13
+記憶シア！」
+あそこの半導体部門だったとこでしたっけ？
+あっちのあのメーカがコンシューマ向けラインをAIデータセンタ向けに割り当て変更したとかなんとかかんとかで…
+ぐふっ
+AUTOBANKCLUB
+NI225 1,
+3月 26
+フジクラ
+i1qbzyf
+4月 13
+みなさん4/13のNI225は正しく表示されていますか？エラーになって4/10までのチャートしか見れないんだ
+ukon_shima
+CL1! 1M,
+4月 13
+お疲れ様です。正しく表示されていませんね・・・。
+yamamitu2
+6315 1D,
+4月 13
+NI225のチャート、同じく4/10までしか出てきていません。一旦削除して登録しなおしても、アプリを再起動しても治りません。。。
+i1qbzyf
+NI225 1D,
+4月 13
+なんとかしてほしいですね。。。困っています
+bookhill
+NI225 1D,
+4月 13
+NI225は皆さん症状出てるんですね、自分だけかと悪戦苦闘してました。
+bookhill
+RUT 1D,
+4月 14
+すいません、NI225だけでなく他の指標も4月10日で止まってるのがありませんか？
+ukon_shima
+TOPIX 1D,
+4月 14
+おはようございます。他の指標は今のところ止まっているものは確認できていません。すみませんが、具体的にどの指標ですか？
+sagamiyama
+NI225 1D,
+4月 14
+トレーディングビューからの告知がありますNo real-time data on SP:SPX, TVC:SPX, TVC
+JI, DJ
+JI, TVC:RUT Our data vendor is investigating the issue with high priority.
+Please switch to alternative charts, e.g., CBOE:SPX, AMEX:SPY, or FX:US30 in the meantime.
+We appreciate your understanding and patience.
+ukon_shima
+TOPIX 1D,
+4月 14
+ありがとうございます。復旧の目途は立っていないんですね・・・。
+aubonvieux
+NI225 1D,
+4月 23
+たのみますよ。
+aubonvieux
+NI225 1D,
+5月 7
+NI225のチャートが止まっています。
+aubonvieux
+JAPAN225CFD 240,
+5月 7
+この最高値更新のパワフルなときにチャートがだめって、頼りない。
+magro9
+8601 1D,
+6月 1
+大和証券Gの配当額が間違ってる（2026-3-30）
+NotaRobot69
+JP225USD 1W,
+23時間前
+歓喜の中でお師匠を呼ぶ（能登の暴れ熊ことお師匠コール
+@daisuke_gewinn
+近頃iいかがお過ごしですか？
+…
+へんじがない
+ただのしかばねのようだ
+' 　 　 ∧∧
+/⌒ヽ)
+i三　∪
+○三　|
+(/~∪
+三三
+三三
+三三三
+daisuke_gewinn
+285A 5,
+23時間前
+AIメカテックのメンヘラで遊んでます
+NotaRobot69
+NK225M2! 540,
+23時間前
+__φ(◎◎ヘ)
+お元気そうでなによりです
+NotaRobot69
+CL1! 15,
+23時間前
+お師匠さま降臨に原油が反応..
+だと...
+ぐふっ
+daisuke_gewinn
+10時間前
+原油はトランプが遊んでるので・・ｗ
+NotaRobot69
+USDJPY 720,
+4時間前
+そういえば，お師匠さまは現役米大統領とファーストネーム呼びの関係…
+…
+ぐふっ
+チャートのスナップショット
+無効なリンク
+チャットでは日本語を使用して下さい。ローカルバージョンを確認してご利用の言語がサポートされているかをご確認ください。
+トーク
+FX
+24.1K
+vikav: 日足フィボ61.8%戻し
+20時間前
+0
+暗号資産
+228K
+BitCoinGuide: こんにちは。
+ビットコインガイドです。
+
+今日もビットコインは危機ですね。
+CPI指標発表があるので、
+分析記事を確認して安全に運営してください。
+
+おやすみなさい。
+
+
+ありがとうございます。
+23時間前
+0
+株 & インデックス
+25.2K
+blueskyended: 各国の長期金利も本格的な上昇サイクルに入りそうなのでリスク資産が上がるはずもなく
+6月 6
+0
+チャート使い方 & 一般的な質問など
+4.7K
+Kitasan001: ペーパートレードでエントリー。チャート下のエントリー一覧に詳細がでるが、チャート画面にエントリのの表示、LSやTPのサインも出ないどうしてでしょう。わかる方がいらっしゃればごしなの願いします。
+21分前
+0
+日本個別株
+917
+NotaRobot69: そういえば，お師匠さまは現役米大統領とファーストネーム呼びの関係… :panic:
+
+…
+ぐふっ
+4時間前
+0
+BTC
+62K
+HAPPYKUN: レインボー　　あと一回ぐいっとおちてくれたら
+6月 10
+0
+テクニカル分析とトレード戦略
+853
+NotaRobot69: って思うじゃん？
+ :sarcasm:
+6月 9
+0
+Nikkei225
+993
+yamanote2: 66965売り
+6月 5
+0
+ＣＦＤチャート
+162
+neisu: @stfxfu さんが書きました:
+例えば４個のチャートを出した画面全体を保存して、いったんパソコンの電源を切った後；
+新規レイアウト作成→4個のチャートを出したままでレイアウト保存。これで次回起動時に保存したレイアウトが呼び出されます。
+4月 6
+0
+Pineスクリプトについて
+1K
+pocktomo7: @Phoo222 さんが書きました:
+@pocktomo7 こんにちは！右ツールバーのプロダクトメニューからPineエディタを開くことができます
+https://s3.tradingview.com/snapshots/v/vQhuFelJ.png
+ありがとうございます。
+出来ました。マジで困っていたので助かりました。
+1月 8
+0
+米国株
+139
+NotaRobot69: iRobotでｶﾞﾝﾊﾞﾙﾝﾊﾞ…
+…
+
+ぐふっ
+2025 12月 15
+0
+あなたはまだチャットルームをお気に入りに追加していません。
+ズレ手法
+ズレ手法
+2025年10月27日 — 2026年6月11日
+主要統計
+総損益
++478.00
+JPY
++0.05%
+最大ドローダウン
+6,100.00
+JPY
+0.61%
+勝ちトレード
+63.64%
+21/33
+プロフィットファクター
+1.038
+パフォーマンス
+累積損益
+バイ・アンド・ホールド
+トレードエクスカーション
+資産増加幅・ドローダウン
+トレード番号: 33 ロング
+累積損益
+478.00
+JPY
+最大順行幅
+736.00
+JPY
+最大逆行幅
+−224.00
+JPY
+バイ・アンド・ホールド
+96,800.00
+JPY
+2026年6月11日(木), 09:50
+クリックしてチャートで確認
+リターン詳細
+概要
+リターン
+ベンチマーク
+リスク調整後パフォーマンス
+その他
+未実現損益
+0
+JPY
+0.00%
+期待損益
+14.48
+JPY
+戦略の超過収益
+−107,938.00
+JPY
+シャープレシオ
+−0.063
+損益構成
+grossProfit
+grossLoss
+commission
+netProfit
+‪0.00‬
+‪‪3.50 K‬‬
+‪‪7.00 K‬‬
+‪‪10.50 K‬‬
+‪‪14.00 K‬‬
+総利益
+総損失
+手数料
+総損益
+ベンチマーク
+バイ・アンド・ホールドの損益
+ストラテジーの損益
+トレード分析
+概要
+トレード分析詳細
+その他
+平均損益
+14.48
+JPY
+0.01%
+トレードの平均バー数
+33
+最大利益
+3,955.00
+JPY
+最大損失
+1,820.00
+JPY
+ROI分布
+負け
+勝ち
+平均損失
+−1.16%
+平均利益
+0.46%
+トレード分布
+33
+トレード総数
+勝ち
+21トレード
+63.64%
+負け
+11トレード
+33.33%
+損益ゼロ
+1トレード
+3.03%
+資産増加幅・ドローダウン
+概要
+資産増加幅
+ドローダウン
+その他
+平均資産増加期間
+13日
+平均ドローダウン期間
+42日
+最大ドローダウン率 (対初期資金)
+0.61%
+リカバリーファクター
+0.08
+JPY
+増加と減少の推移
+資産増加幅
+ドローダウン
+現在の資産増加幅
+増加期間と減少期間の比較
+資産増加幅
+最大
+0.42%
+平均
+0.39%
+現在
+0.35%
+ドローダウン
+最大
+0.54%
+平均
+0.54%
+資本効率
+概要
+資本使用状況
+証拠金使用状況
+その他
+年平均成長率 (CAGR)
+0.08%
+必要口座サイズ
+106,620.00
+JPY
+初期資金リターン
+0.05%
+マージンコール
+0
+window.fbAppId = "155037361239837";
+window.BLOG_LOCALIZED_URL = "https://www.tradingview.com/blog/ja/";
+
+
+			initData.idc_exchanges_list = ["nzx","bme","bme_stocks","shfe","szse","nag","tfx","twse","bvc","bvcv","bmv","bvmt","bvl","bcs","six","bsse","bahrain","belex","nseke","qse"];
+
+			initData.idc_delay_exchanges_list = ["shfe","tfx","bvcv","bvmt","bsse","bahrain"];
+
+			initData.offlineAlertEventsOnInit = true;
+スケール
+さらに表示
+さらに表示
+さらに表示
+さらに表示
+さらに表示
+さらに表示
+さらに表示
+さらに表示
+さらに表示
+さらに表示
+さらに表示
+さらに表示
+さらに表示
+さらに表示
+さらに表示
+さらに表示
+さらに表示
+さらに表示
+さらに表示
+さらに表示
+さらに表示
