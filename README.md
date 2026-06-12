@@ -191,6 +191,6 @@ uv run python extract_data.py
 
 - TradingViewのUI変更でスクレイパーが破損する可能性あり
 - 日本語UI前提（指標名が日本語でCSVに出力される）
-- 再計算待機時間はデフォルト6秒（`WAIT_RECALC`）。回線が遅い場合は8〜10に増やす
+- 再計算待機時間はデフォルト10秒（`WAIT_RECALC`）。回線が遅い場合はさらに増やす
 - スペースキーで検索バーが起動しない場合は `switch_symbol` 内の `"Space"` を `"/"` に変更
 ```
