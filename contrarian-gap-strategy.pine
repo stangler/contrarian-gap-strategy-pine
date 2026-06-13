@@ -2,13 +2,6 @@
 strategy("ズレ手法", overlay=true, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
 
 // 入力
-useATR      = input.bool(true, "ATR動的モード使用")
-atrLen      = input.int(14, "ATR期間", group="ATR設定")
-atrMultSL   = input.float(2, "SL ATR倍率", group="ATR設定")
-atrMultTP   = input.float(0.8, "TP ATR倍率", group="ATR設定")
-atrMultNap1 = input.float(1.3, "ナンピン1 ATR倍率", group="ATR設定")
-atrMultNap2 = input.float(1.5, "ナンピン2 ATR倍率", group="ATR設定")
-
 slTicks        = input.int(15, "SL (固定)", minval=1)
 tpTicks        = input.int(15, "TP (固定)", minval=1)
 nappin1Ticks   = input.int(15, "ナンピン1 (固定)", minval=1)
@@ -21,14 +14,9 @@ startDate = input.time(timestamp("2026-04-01 00:00"), "開始日")
 endDate   = input.time(timestamp("2026-04-24 23:59"), "終了日")
 inRange   = time >= startDate and time <= endDate
 
-// 取引時間帯
-tradeStartHour = input.int(9,  "取引開始 時", minval=0, maxval=23)
-tradeStartMin  = input.int(0,  "取引開始 分", minval=0, maxval=59)
-tradeEndHour   = input.int(15, "取引終了 時", minval=0, maxval=23)
-tradeEndMin    = input.int(30, "取引終了 分", minval=0, maxval=59)
-
-timeOk = (hour > tradeStartHour or (hour == tradeStartHour and minute >= tradeStartMin)) and
-         (hour < tradeEndHour   or (hour == tradeEndHour   and minute <= tradeEndMin))
+// 取引時間帯: 9:00-9:30 固定
+timeOk    = hour == 9 and minute < 30
+slotClose = hour == 9 and minute >= 30
 
 // 陰線判定
 bearish(i) => close[i] < open[i]
@@ -59,24 +47,10 @@ else if bearCount == 5
 else if bearCount == 6
     preSignal := bearish(0) and bearish(1) and bearish(2) and bearish(3) and bearish(4)
 
-eodClose = hour == 15 and minute >= 25
 tickSize = syminfo.mintick
 
-// ATR計算
-atrVal = ta.atr(atrLen)
-nap1TicksDyn = math.round(atrVal / tickSize * atrMultNap1)
-nap2TicksDyn = math.round(atrVal / tickSize * atrMultNap2)
-tpTicksDyn   = math.round(atrVal / tickSize * atrMultTP)
-slTicksDyn   = math.round(atrVal / tickSize * atrMultSL)
-
-// 使用値決定
-nappin1Use = useATR ? nap1TicksDyn : nappin1Ticks
-nappin2Use = useATR ? nap2TicksDyn : nappin2Ticks
-tpTicksUse = useATR ? tpTicksDyn   : tpTicks
-slTicksUse = useATR ? slTicksDyn   : slTicks
-
-// 合計SLティック（重要修正）
-totalSLTicks = nappin1Use + nappin2Use + slTicksUse
+// 合計SLティック
+totalSLTicks = nappin1Ticks + nappin2Ticks + slTicks
 
 // ナンピン管理
 var float entryPrice  = na
@@ -91,45 +65,45 @@ if strategy.position_size == 0
 if strategy.position_size > 0 and na(entryPrice)
     entryPrice := strategy.position_avg_price
 
-// TP/SL 動的計算
+// TP/SL 計算
 float avgPrice = strategy.position_avg_price
-float tpPrice  = strategy.position_size > 0 ? avgPrice + tpTicksUse * tickSize : na
+float tpPrice  = strategy.position_size > 0 ? avgPrice + tpTicks * tickSize : na
 float slPrice  = na(entryPrice) ? na : entryPrice - totalSLTicks * tickSize
 
 // TP/SL 判定
-if strategy.position_size > 0 and not eodClose
+if strategy.position_size > 0 and not slotClose
     if not na(tpPrice) and high >= tpPrice
         strategy.close_all(comment="TP")
     else if not na(slPrice) and low <= slPrice
         strategy.close_all(comment="SL")
 
-// 大引け強制決済
-if eodClose and strategy.position_size > 0
-    strategy.close_all(comment="大引け")
+// スロット終了強制決済
+if slotClose and strategy.position_size > 0
+    strategy.close_all(comment="スロット終了")
 
 // 初回エントリー
-if signal and strategy.position_size == 0 and inRange and timeOk and not eodClose
+if signal and strategy.position_size == 0 and inRange and timeOk
     strategy.entry("Long", strategy.long)
 
 // ナンピン1
 if strategy.position_size > 0 and not nappin1Done and not na(entryPrice) and
-   low <= entryPrice - nappin1Use * tickSize and inRange and timeOk and not eodClose
+   low <= entryPrice - nappin1Ticks * tickSize and inRange and timeOk
     strategy.entry("Nappin1", strategy.long)
     nappin1Done := true
 
 // ナンピン2
 if strategy.position_size > 0 and nappin1Done and not nappin2Done and not na(entryPrice) and
-   low <= entryPrice - (nappin1Use + nappin2Use) * tickSize and inRange and timeOk and not eodClose
+   low <= entryPrice - (nappin1Ticks + nappin2Ticks) * tickSize and inRange and timeOk
     strategy.entry("Nappin2", strategy.long)
     nappin2Done := true
 
 // 事前アラート
-if preSignal and not signal and inRange and timeOk and not eodClose and alertPreSignal
+if preSignal and not signal and inRange and timeOk and alertPreSignal
     alert("ズレ手法: " + syminfo.ticker + " 陰線N-1本確定。次の陰線でエントリー候補。", alert.freq_once_per_bar)
 
 // 可視化
-plotshape(signal and inRange and timeOk and not eodClose, "シグナル", shape.triangleup, location.belowbar, color.green, size=size.small)
-plotshape(preSignal and not signal and inRange and timeOk and not eodClose, "事前シグナル", shape.triangleup, location.belowbar, color.orange, size=size.tiny)
+plotshape(signal and inRange and timeOk, "シグナル", shape.triangleup, location.belowbar, color.green, size=size.small)
+plotshape(preSignal and not signal and inRange and timeOk, "事前シグナル", shape.triangleup, location.belowbar, color.orange, size=size.tiny)
 plot(strategy.position_size > 0 and not na(tpPrice) ? tpPrice : na, "TP Line", color.lime, style=plot.style_linebr)
 plot(strategy.position_size > 0 and not na(slPrice) ? slPrice : na, "SL Line", color.red,  style=plot.style_linebr)
 
@@ -149,7 +123,6 @@ if showTable and (barstate.islastconfirmedhistory or barstate.islast)
 
     int r = 1
 
-    // 既存レポート（省略せず全部残す）
     table.cell(reportTable, 0, r, "Net Profit", text_color = color.white)
     table.cell(reportTable, 1, r, str.tostring(strategy.netprofit, "#,###.##"), text_color = strategy.netprofit >= 0 ? color.green : color.red)
     r += 1
@@ -197,21 +170,3 @@ if showTable and (barstate.islastconfirmedhistory or barstate.islast)
     table.cell(reportTable, 1, r, na(dd_profit_ratio) ? "—" : str.tostring(dd_profit_ratio, "#.##") + "%",
                text_color = na(dd_profit_ratio) ? color.white : strategy.netprofit <= 0 ? color.red : dd_profit_ratio > 50 ? color.red : dd_profit_ratio > 30 ? color.orange : color.green)
     r += 1
-
-    // ATR動的ティック表示（合計SL追加）
-    if useATR
-        table.cell(reportTable, 0, r, "ATR TP ticks", text_color = color.white)
-        table.cell(reportTable, 1, r, str.tostring(tpTicksUse), text_color = color.lime)
-        r += 1
-
-        table.cell(reportTable, 0, r, "ATR SL ticks", text_color = color.white)
-        table.cell(reportTable, 1, r, str.tostring(totalSLTicks), text_color = color.red)   // ← ここ修正：合計表示
-        r += 1
-
-        table.cell(reportTable, 0, r, "ATR Nap1", text_color = color.white)
-        table.cell(reportTable, 1, r, str.tostring(nappin1Use), text_color = color.orange)
-        r += 1
-
-        table.cell(reportTable, 0, r, "ATR Nap2", text_color = color.white)
-        table.cell(reportTable, 1, r, str.tostring(nappin2Use), text_color = color.orange)
-        r += 1
