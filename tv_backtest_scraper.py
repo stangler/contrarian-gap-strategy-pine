@@ -130,6 +130,28 @@ async def scrape_backtest(page) -> list:
                 m = _re.match(r'^(\d+)トレード', texts[i+1])
                 if m: result["負けトレード"] = m.group(1)
 
+        # データウィンドウ: "GapUp 勝" → 次ノード "12.0"
+        elif t == "GapUp 勝" and "GU_勝" not in result:
+            if i+1 < len(texts): result["GU_勝"] = texts[i+1].replace(".0","")
+        elif t == "GapUp 負" and "GU_負" not in result:
+            if i+1 < len(texts): result["GU_負"] = texts[i+1].replace(".0","")
+        elif t == "GapUp 勝率%" and "GU_勝率" not in result:
+            if i+1 < len(texts): result["GU_勝率"] = texts[i+1].replace(".0","") + "%"
+
+        elif t == "GapDown 勝" and "GD_勝" not in result:
+            if i+1 < len(texts): result["GD_勝"] = texts[i+1].replace(".0","")
+        elif t == "GapDown 負" and "GD_負" not in result:
+            if i+1 < len(texts): result["GD_負"] = texts[i+1].replace(".0","")
+        elif t == "GapDown 勝率%" and "GD_勝率" not in result:
+            if i+1 < len(texts): result["GD_勝率"] = texts[i+1].replace(".0","") + "%"
+
+        elif t == "Cont 勝" and "Cont_勝" not in result:
+            if i+1 < len(texts): result["Cont_勝"] = texts[i+1].replace(".0","")
+        elif t == "Cont 負" and "Cont_負" not in result:
+            if i+1 < len(texts): result["Cont_負"] = texts[i+1].replace(".0","")
+        elif t == "Cont 勝率%" and "Cont_勝率" not in result:
+            if i+1 < len(texts): result["Cont_勝率"] = texts[i+1].replace(".0","") + "%"
+
     if DEBUG_SCRAPE:
         print(f"  [DEBUG] 抽出結果: {result}")
 

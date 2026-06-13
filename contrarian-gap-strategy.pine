@@ -8,6 +8,7 @@ nappin1Ticks   = input.int(15, "ナンピン1 (固定)", minval=1)
 nappin2Ticks   = input.int(15, "ナンピン2 (固定)", minval=1)
 bearCount      = input.int(2,  "陰線本数", minval=2, maxval=6)
 alertPreSignal = input.bool(true, "事前アラート（N-1本陰線）")
+gap_threshold_pct = input.float(0.1, "ギャップ閾値（%）", group="GU/GD/Cont設定")
 
 // バックテスト期間
 startDate = input.time(timestamp("2026-04-01 00:00"), "開始日")
@@ -109,64 +110,206 @@ plot(strategy.position_size > 0 and not na(slPrice) ? slPrice : na, "SL Line", c
 
 bgcolor(not inRange ? color.new(color.gray, 90) : na)
 
-// === レポートテーブル ===
+// ============================================================
+// === GU / GD / Cont 集計
+// ============================================================
+
+// 前日終値（日足ベース）
+prev_day_close = request.security(syminfo.tickerid, "D", close[1], lookahead=barmerge.lookahead_on)
+
+// その日の寄り付き足（9:00 最初のバー）を検出
+var bool am_fired_today = false
+if timeframe.change("D")
+    am_fired_today := false
+is_am_open = not am_fired_today and hour == 9 and minute == 0
+if is_am_open
+    am_fired_today := true
+
+// 寄り付きギャップ率（9:00足のopen使用）
+gap_th = gap_threshold_pct / 100.0
+var float today_gap_pct = na
+if is_am_open
+    today_gap_pct := (open - prev_day_close) / prev_day_close
+
+// 当日のGU/GD/Contパターン（日をまたいでも保持）
+var int today_pattern = -1  // 0=GU, 1=GD, 2=Cont
+if is_am_open
+    today_pattern := today_gap_pct > gap_th ? 0 : (today_gap_pct < -gap_th ? 1 : 2)
+
+// エントリー発生時にパターンとトレード結果を記録
+// トレード結果: strategy.closedtrades の増加 + 直近クローズコメントで判定
+// → エントリー時点でパターン記録、決済時に勝敗記録する設計
+//   PineScript では決済コメント直接取得不可のため、
+//   エントリー時のパターンを var で保持し、ポジション消滅時に勝敗判定する
+
+var int   entry_pattern   = -1   // エントリー時のGU/GD/Contパターン
+var float entry_close_pnl = na   // エントリー時の close（比較用）
+var bool  in_trade        = false
+var int   prev_closed     = 0
+
+// エントリー検出
+if signal and strategy.position_size == 0 and inRange and timeOk
+    entry_pattern   := today_pattern
+    in_trade        := true
+
+// 決済検出（ポジションがなくなった瞬間）
+bool just_closed = in_trade and strategy.position_size == 0 and strategy.closedtrades > prev_closed
+
+// 勝敗: 直近クローズのP&Lで判定
+var array<int>   arr_pat  = array.new<int>()
+var array<int>   arr_win  = array.new<int>()  // 1=勝ち, 0=負け
+
+if just_closed
+    float last_pnl = strategy.closedtrades > 0 ? strategy.closedtrades.profit(strategy.closedtrades - 1) : 0.0
+    int   win      = last_pnl > 0 ? 1 : 0
+    if entry_pattern >= 0
+        array.push(arr_pat, entry_pattern)
+        array.push(arr_win, win)
+    in_trade    := false
+    prev_closed := strategy.closedtrades
+
+// prev_closed 更新（エントリーなしでも同期）
+if strategy.closedtrades > prev_closed and not just_closed
+    prev_closed := strategy.closedtrades
+
+// === 集計関数 ===
+f_pat_calc(pat_arr, win_arr, pat_id) =>
+    int sz  = array.size(pat_arr)
+    int win = 0
+    int los = 0
+    if sz > 0
+        for i = 0 to sz - 1
+            if array.get(pat_arr, i) == pat_id
+                if array.get(win_arr, i) == 1
+                    win += 1
+                else
+                    los += 1
+    [win, los]
+
+// 集計結果（最終バーで更新）
+var int gu_win = 0, gu_los = 0
+var int gd_win = 0, gd_los = 0
+var int co_win = 0, co_los = 0
+
+if barstate.islastconfirmedhistory or barstate.islast
+    [gw, gl] = f_pat_calc(arr_pat, arr_win, 0)
+    [dw, dl] = f_pat_calc(arr_pat, arr_win, 1)
+    [cw, cl] = f_pat_calc(arr_pat, arr_win, 2)
+    gu_win := gw,  gu_los := gl
+    gd_win := dw,  gd_los := dl
+    co_win := cw,  co_los := cl
+
+// ============================================================
+// === レポートテーブル
+// ============================================================
 showTable = input.bool(true, "レポートテーブル表示", group="レポート設定")
 
-var table reportTable = table.new(position.top_right, columns = 2, rows = 20, bgcolor = color.new(color.white, 80), border_width = 1, frame_color = color.gray, border_color = color.gray)
+f_wr(w, l) =>
+    w + l > 0 ? str.tostring(float(w) / float(w + l) * 100, "#.#") + "%" : "—"
+
+var table reportTable = table.new(position.top_right, columns=2, rows=25,
+     bgcolor=color.new(color.white, 80), border_width=1,
+     frame_color=color.gray, border_color=color.gray)
 
 if showTable and (barstate.islastconfirmedhistory or barstate.islast)
     float max_dd_amount = strategy.max_drawdown
     float max_dd_pct    = strategy.initial_capital > 0 ? (strategy.max_drawdown / strategy.initial_capital) * 100 : na
 
-    table.cell(reportTable, 0, 0, "項目", text_color = color.white, bgcolor = color.new(#1e88e5, 0), text_size = size.normal)
-    table.cell(reportTable, 1, 0, "値",   text_color = color.white, bgcolor = color.new(#1e88e5, 0), text_size = size.normal)
+    color C_HDR   = color.new(#1e88e5, 0)
+    color C_PAT   = color.new(#1b5e20, 30)
+    color C_STATS = color.new(#37474f, 30)
+
+    table.cell(reportTable, 0, 0, "項目", text_color=color.white, bgcolor=C_HDR, text_size=size.normal)
+    table.cell(reportTable, 1, 0, "値",   text_color=color.white, bgcolor=C_HDR, text_size=size.normal)
 
     int r = 1
 
-    table.cell(reportTable, 0, r, "Net Profit", text_color = color.white)
-    table.cell(reportTable, 1, r, str.tostring(strategy.netprofit, "#,###.##"), text_color = strategy.netprofit >= 0 ? color.green : color.red)
+    // --- GU/GD/Cont ---
+    table.cell(reportTable, 0, r, "GapUp  勝/負/率",  text_color=color.white, bgcolor=C_PAT, text_size=size.normal)
+    table.cell(reportTable, 1, r, str.tostring(gu_win) + "/" + str.tostring(gu_los) + "  " + f_wr(gu_win, gu_los),
+               text_color=color.white, bgcolor=C_PAT, text_size=size.normal)
     r += 1
 
-    table.cell(reportTable, 0, r, "Gross Profit", text_color = color.white)
-    table.cell(reportTable, 1, r, str.tostring(strategy.grossprofit, "#,###.##"), text_color = color.white)
+    table.cell(reportTable, 0, r, "GapDown 勝/負/率", text_color=color.white, bgcolor=C_PAT, text_size=size.normal)
+    table.cell(reportTable, 1, r, str.tostring(gd_win) + "/" + str.tostring(gd_los) + "  " + f_wr(gd_win, gd_los),
+               text_color=color.white, bgcolor=C_PAT, text_size=size.normal)
     r += 1
 
-    table.cell(reportTable, 0, r, "Gross Loss", text_color = color.white)
-    table.cell(reportTable, 1, r, str.tostring(strategy.grossloss, "#,###.##"), text_color = color.white)
+    table.cell(reportTable, 0, r, "Cont   勝/負/率",  text_color=color.white, bgcolor=C_PAT, text_size=size.normal)
+    table.cell(reportTable, 1, r, str.tostring(co_win) + "/" + str.tostring(co_los) + "  " + f_wr(co_win, co_los),
+               text_color=color.white, bgcolor=C_PAT, text_size=size.normal)
+    r += 1
+
+    // --- 区切り ---
+    table.cell(reportTable, 0, r, "─────", text_color=color.gray, bgcolor=C_STATS, text_size=size.normal)
+    table.cell(reportTable, 1, r, "─────", text_color=color.gray, bgcolor=C_STATS, text_size=size.normal)
+    r += 1
+
+    // --- 既存Stats ---
+    table.cell(reportTable, 0, r, "Net Profit", text_color=color.white, bgcolor=C_STATS)
+    table.cell(reportTable, 1, r, str.tostring(strategy.netprofit, "#,###.##"),
+               text_color=strategy.netprofit >= 0 ? color.green : color.red, bgcolor=C_STATS)
+    r += 1
+
+    table.cell(reportTable, 0, r, "Gross Profit", text_color=color.white, bgcolor=C_STATS)
+    table.cell(reportTable, 1, r, str.tostring(strategy.grossprofit, "#,###.##"), text_color=color.white, bgcolor=C_STATS)
+    r += 1
+
+    table.cell(reportTable, 0, r, "Gross Loss", text_color=color.white, bgcolor=C_STATS)
+    table.cell(reportTable, 1, r, str.tostring(strategy.grossloss, "#,###.##"), text_color=color.white, bgcolor=C_STATS)
     r += 1
 
     float pf = strategy.grossloss != 0 ? strategy.grossprofit / math.abs(strategy.grossloss) : na
-    table.cell(reportTable, 0, r, "Profit Factor", text_color = color.white)
-    table.cell(reportTable, 1, r, na(pf) ? "—" : str.tostring(pf, "#.##"), text_color = pf >= 1.5 ? color.green : (pf >= 1.0 ? color.orange : color.red))
+    table.cell(reportTable, 0, r, "Profit Factor", text_color=color.white, bgcolor=C_STATS)
+    table.cell(reportTable, 1, r, na(pf) ? "—" : str.tostring(pf, "#.##"),
+               text_color=pf >= 1.5 ? color.green : (pf >= 1.0 ? color.orange : color.red), bgcolor=C_STATS)
     r += 1
 
     float win_rate = strategy.closedtrades > 0 ? (strategy.wintrades / strategy.closedtrades) * 100 : 0
-    table.cell(reportTable, 0, r, "Win Rate %", text_color = color.white)
-    table.cell(reportTable, 1, r, str.tostring(win_rate, "#.##") + "%", text_color = win_rate >= 50 ? color.green : color.red)
+    table.cell(reportTable, 0, r, "Win Rate %", text_color=color.white, bgcolor=C_STATS)
+    table.cell(reportTable, 1, r, str.tostring(win_rate, "#.##") + "%",
+               text_color=win_rate >= 50 ? color.green : color.red, bgcolor=C_STATS)
     r += 1
 
-    table.cell(reportTable, 0, r, "Total Trades", text_color = color.white)
-    table.cell(reportTable, 1, r, str.tostring(strategy.closedtrades), text_color = color.white)
+    table.cell(reportTable, 0, r, "Total Trades", text_color=color.white, bgcolor=C_STATS)
+    table.cell(reportTable, 1, r, str.tostring(strategy.closedtrades), text_color=color.white, bgcolor=C_STATS)
     r += 1
 
-    table.cell(reportTable, 0, r, "Win Trades", text_color = color.white)
-    table.cell(reportTable, 1, r, str.tostring(strategy.wintrades), text_color = color.white)
+    table.cell(reportTable, 0, r, "Win Trades", text_color=color.white, bgcolor=C_STATS)
+    table.cell(reportTable, 1, r, str.tostring(strategy.wintrades), text_color=color.white, bgcolor=C_STATS)
     r += 1
 
-    table.cell(reportTable, 0, r, "Loss Trades", text_color = color.white)
-    table.cell(reportTable, 1, r, str.tostring(strategy.losstrades), text_color = color.white)
+    table.cell(reportTable, 0, r, "Loss Trades", text_color=color.white, bgcolor=C_STATS)
+    table.cell(reportTable, 1, r, str.tostring(strategy.losstrades), text_color=color.white, bgcolor=C_STATS)
     r += 1
 
-    table.cell(reportTable, 0, r, "Max Drawdown %", text_color = color.white)
-    table.cell(reportTable, 1, r, na(max_dd_pct) ? "—" : str.tostring(max_dd_pct, "#.##") + "%", text_color = color.white)
+    table.cell(reportTable, 0, r, "Max Drawdown %", text_color=color.white, bgcolor=C_STATS)
+    table.cell(reportTable, 1, r, na(max_dd_pct) ? "—" : str.tostring(max_dd_pct, "#.##") + "%",
+               text_color=color.white, bgcolor=C_STATS)
     r += 1
 
-    table.cell(reportTable, 0, r, "Max Drawdown (金額)", text_color = color.white)
-    table.cell(reportTable, 1, r, str.tostring(max_dd_amount, "#,###.##"), text_color = color.white)
+    table.cell(reportTable, 0, r, "Max Drawdown (金額)", text_color=color.white, bgcolor=C_STATS)
+    table.cell(reportTable, 1, r, str.tostring(max_dd_amount, "#,###.##"), text_color=color.white, bgcolor=C_STATS)
     r += 1
 
     float dd_profit_ratio = strategy.netprofit != 0 ? (max_dd_amount / strategy.netprofit) * 100 : na
-    table.cell(reportTable, 0, r, "DD/Profit Ratio", text_color = color.white)
+    table.cell(reportTable, 0, r, "DD/Profit Ratio", text_color=color.white, bgcolor=C_STATS)
     table.cell(reportTable, 1, r, na(dd_profit_ratio) ? "—" : str.tostring(dd_profit_ratio, "#.##") + "%",
-               text_color = na(dd_profit_ratio) ? color.white : strategy.netprofit <= 0 ? color.red : dd_profit_ratio > 50 ? color.red : dd_profit_ratio > 30 ? color.orange : color.green)
+               text_color=na(dd_profit_ratio) ? color.white : strategy.netprofit <= 0 ? color.red : dd_profit_ratio > 50 ? color.red : dd_profit_ratio > 30 ? color.orange : color.green,
+               bgcolor=C_STATS)
     r += 1
+
+// === データウィンドウ出力 ===
+f_dw_wr(w, l) => w + l > 0 ? float(w) / float(w + l) * 100 : na
+
+plot(gu_win,                  title="GapUp 勝",   display=display.data_window)
+plot(gu_los,                  title="GapUp 負",   display=display.data_window)
+plot(f_dw_wr(gu_win, gu_los), title="GapUp 勝率%", display=display.data_window)
+
+plot(gd_win,                  title="GapDown 勝",   display=display.data_window)
+plot(gd_los,                  title="GapDown 負",   display=display.data_window)
+plot(f_dw_wr(gd_win, gd_los), title="GapDown 勝率%", display=display.data_window)
+
+plot(co_win,                  title="Cont 勝",   display=display.data_window)
+plot(co_los,                  title="Cont 負",   display=display.data_window)
+plot(f_dw_wr(co_win, co_los), title="Cont 勝率%", display=display.data_window)
