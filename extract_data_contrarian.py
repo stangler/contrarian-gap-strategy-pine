@@ -3,7 +3,7 @@ from pathlib import Path
 from openpyxl import load_workbook
 
 def extract_from_csv(csv_file):
-    data = {}
+    data = {'_file': str(csv_file)}
     with open(csv_file, encoding="utf-8-sig") as f:
         reader = csv.reader(f)
         first_row = next(reader, None)
@@ -18,8 +18,21 @@ def extract_from_csv(csv_file):
                     data[key] = value
     return data
 
-def update_excel(csv_data_list):
-    wb = load_workbook("format.xlsx")
+def slot_key_from_data(data: dict) -> str:
+    """CSV内のSlot開始(分)/Slot終了(分)からスロット識別子を生成。
+    複数スロットのCSVが同じフォルダに混在していても、これでグループ分けできる。"""
+    try:
+        start = int(float(data.get('Slot開始', '')))
+        end = int(float(data.get('Slot終了', '')))
+    except (TypeError, ValueError):
+        return "unknown"
+    def hhmm(m):
+        h, mi = divmod(m, 60)
+        return f"{h:02d}{mi:02d}"
+    return f"{hhmm(start)}_{hhmm(end)}"
+
+def update_excel(csv_data_list, template="format.xlsx", output_name="format.xlsx"):
+    wb = load_workbook(template)
     ws = wb.active
 
     for row in ws.iter_rows(min_row=2):
@@ -50,15 +63,39 @@ def update_excel(csv_data_list):
         else:
             print(f"  ✗ {symbol}: CSVなし")
 
-    wb.save("format.xlsx")
-    print("\nSaved to format.xlsx")
+    wb.save(output_name)
+    print(f"  Saved to {output_name}")
 
 def main():
-    csv_files = list(Path(".").glob("*.csv"))
+    csv_files = sorted(Path(".").glob("*.csv"), key=lambda p: p.stat().st_mtime)
     print(f"Found {len(csv_files)} CSV files")
 
     csv_data_list = [extract_from_csv(f) for f in csv_files]
-    update_excel(csv_data_list)
+
+    # スロット別にグループ分け（同フォルダに複数スロットのCSVが混在していてもOK）
+    # 同一銘柄+スロットのCSVが複数（別日付など）ある場合は、mtimeが新しい方を採用
+    # （csv_filesをmtime昇順にしてあるので、辞書への代入で後勝ち＝最新が残る）
+    grouped: dict[str, dict] = {}
+    for d in csv_data_list:
+        slot = slot_key_from_data(d)
+        symbol = d.get('銘柄')
+        bucket = grouped.setdefault(slot, {})
+        if symbol in bucket:
+            print(f"  ⚠ 重複検出: {symbol}（スロット{slot}） "
+                  f"{bucket[symbol]['_file']} → {d['_file']} を採用（新しい方）")
+        bucket[symbol] = d
+
+    print(f"検出スロット: {list(grouped.keys())}\n")
+
+    for slot, symbol_map in grouped.items():
+        items = list(symbol_map.values())
+        if slot == "unknown":
+            out_name = "format.xlsx"  # スロット情報なしCSV（旧形式）は従来通り
+        else:
+            out_name = f"format_{slot}.xlsx"
+        print(f"--- スロット「{slot}」（{len(items)}件） → {out_name} ---")
+        update_excel(items, template="format.xlsx", output_name=out_name)
+        print()
 
 if __name__ == "__main__":
     main()

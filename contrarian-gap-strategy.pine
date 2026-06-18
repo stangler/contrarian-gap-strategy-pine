@@ -15,9 +15,51 @@ startDate = input.time(timestamp("2026-04-01 00:00"), "開始日")
 endDate   = input.time(timestamp("2026-04-24 23:59"), "終了日")
 inRange   = time >= startDate and time <= endDate
 
-// 取引時間帯: 9:00-9:30 固定
-timeOk    = hour == 9 and minute < 30
-slotClose = hour == 9 and minute >= 30
+// 取引時間帯スロット（プリセット切替、設定ダイアログから変更）
+slotPreset = input.string("9:00-9:30", "時間帯スロット",
+     options=["9:00-9:30", "9:30-10:00", "10:00-10:30", "10:30-11:00", "11:00-11:30",
+              "12:30-13:00", "13:00-13:30", "13:30-14:00", "14:00-14:30", "14:30-15:00",
+              "15:00-15:25"], group="時間帯設定")
+
+var int slotStartMin = 0
+var int slotEndMin   = 0
+if slotPreset == "9:00-9:30"
+    slotStartMin := 540  // 9:00
+    slotEndMin   := 570  // 9:30
+else if slotPreset == "9:30-10:00"
+    slotStartMin := 570  // 9:30
+    slotEndMin   := 600  // 10:00
+else if slotPreset == "10:00-10:30"
+    slotStartMin := 600  // 10:00
+    slotEndMin   := 630  // 10:30
+else if slotPreset == "10:30-11:00"
+    slotStartMin := 630  // 10:30
+    slotEndMin   := 660  // 11:00
+else if slotPreset == "11:00-11:30"
+    slotStartMin := 660  // 11:00
+    slotEndMin   := 690  // 11:30
+else if slotPreset == "12:30-13:00"
+    slotStartMin := 750  // 12:30
+    slotEndMin   := 780  // 13:00
+else if slotPreset == "13:00-13:30"
+    slotStartMin := 780  // 13:00
+    slotEndMin   := 810  // 13:30
+else if slotPreset == "13:30-14:00"
+    slotStartMin := 810  // 13:30
+    slotEndMin   := 840  // 14:00
+else if slotPreset == "14:00-14:30"
+    slotStartMin := 840  // 14:00
+    slotEndMin   := 870  // 14:30
+else if slotPreset == "14:30-15:00"
+    slotStartMin := 870  // 14:30
+    slotEndMin   := 900  // 15:00
+else // "15:00-15:25"
+    slotStartMin := 900  // 15:00
+    slotEndMin   := 925  // 15:25
+
+curMin    = hour * 60 + minute
+timeOk    = curMin >= slotStartMin and curMin < slotEndMin
+slotClose = curMin >= slotEndMin
 
 // 陰線判定
 bearish(i) => close[i] < open[i]
@@ -240,9 +282,10 @@ if showTable and (barstate.islastconfirmedhistory or barstate.islast)
                text_color=color.white, bgcolor=C_PAT, text_size=size.normal)
     r += 1
 
-    // --- 区切り ---
-    table.cell(reportTable, 0, r, "─────", text_color=color.gray, bgcolor=C_STATS, text_size=size.normal)
-    table.cell(reportTable, 1, r, "─────", text_color=color.gray, bgcolor=C_STATS, text_size=size.normal)
+    // --- セクション見出し ---
+    color C_SECTION = color.new(#607d8b, 0)
+    table.cell(reportTable, 0, r, "Strategy Stats", text_color=color.white, bgcolor=C_SECTION, text_size=size.normal)
+    table.cell(reportTable, 1, r, "", text_color=color.white, bgcolor=C_SECTION, text_size=size.normal)
     r += 1
 
     // --- 既存Stats ---
@@ -313,3 +356,7 @@ plot(f_dw_wr(gd_win, gd_los), title="GapDown 勝率%", display=display.data_wind
 plot(co_win,                  title="Cont 勝",   display=display.data_window)
 plot(co_los,                  title="Cont 負",   display=display.data_window)
 plot(f_dw_wr(co_win, co_los), title="Cont 勝率%", display=display.data_window)
+
+// スロット設定の自動検出用（python側のCURRENT_SLOT手動同期を不要にする）
+plot(slotStartMin, title="Slot開始(分)", display=display.data_window)
+plot(slotEndMin,   title="Slot終了(分)", display=display.data_window)
