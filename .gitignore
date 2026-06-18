@@ -222,3 +222,6 @@ __marimo__/
 urls.txt
 *.csv
 *.xlsx
+debug_texts.txt
+debug_switch_log.jsonl
+*.png
