@@ -8,11 +8,11 @@ nappin1Ticks   = input.int(15, "ナンピン1 (固定)", minval=1)
 nappin2Ticks   = input.int(15, "ナンピン2 (固定)", minval=1)
 bearCount      = input.int(2,  "陰線本数", minval=2, maxval=6)
 alertPreSignal = input.bool(true, "事前アラート（N-1本陰線）")
-gap_threshold_pct = input.float(0.1, "ギャップ閾値（%）", group="GU/GD/Cont設定")
+gap_threshold_pct = input.float(0.5, "ギャップ閾値（%）", group="GU/GD/Cont設定")
 
 // バックテスト期間
-startDate = input.time(timestamp("2026-04-01 00:00"), "開始日")
-endDate   = input.time(timestamp("2026-04-24 23:59"), "終了日")
+startDate = input.time(timestamp("2026-01-05 00:00"), "開始日")
+endDate   = input.time(timestamp("2026-06-19 06:30"), "終了日")
 inRange   = time >= startDate and time <= endDate
 
 // 取引時間帯スロット（プリセット切替、設定ダイアログから変更）
