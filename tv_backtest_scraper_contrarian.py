@@ -14,11 +14,12 @@ USER_DATA    = r"C:\Temp\tv-profile-pw"   # セッション保存先
 WAIT_RECALC  = 10      # バックテスト再計算待機（秒）
 WAIT_SEARCH  = 1.5    # 検索ダイアログ安定待機（秒）
 EXCHANGE     = "TSE"
+DEBUG_SCREENSHOT = False  # 失敗時のスクリーンショット保存（デフォルト: False）
 
 # ==========================
 
 # Strategy Testerのテキストラベル（日本語DOM）
-DEBUG_SCRAPE = True  # Trueにすると全テキストノードをdebug.txtに出力
+DEBUG_SCRAPE = False  # Trueにすると全テキストノードをdebug.txtに出力
 DEBUG_LOG    = OUTPUT_DIR / "debug_switch_log.jsonl"  # 銘柄切替の診断ログ
 
 def log_debug(record: dict):
@@ -112,12 +113,13 @@ async def wait_for_chart_update(page, symbol: str, debug_info: dict) -> bool:
     debug_info["title_after"] = title_after
 
     if not ok:
-        shot_path = OUTPUT_DIR / f"debug_fail_{symbol}_{datetime.now():%H%M%S}.png"
-        try:
-            await page.screenshot(path=str(shot_path))
-            debug_info["screenshot"] = str(shot_path)
-        except Exception as e:
-            debug_info["screenshot_error"] = str(e)
+        if DEBUG_SCREENSHOT:
+            shot_path = OUTPUT_DIR / f"debug_fail_{symbol}_{datetime.now():%H%M%S}.png"
+            try:
+                await page.screenshot(path=str(shot_path))
+                debug_info["screenshot"] = str(shot_path)
+            except Exception as e:
+                debug_info["screenshot_error"] = str(e)
         print(f"  ⚠ タイトル変化なし（has_focus_before={debug_info['has_focus_before']}, "
               f"search_dialog={debug_info['search_dialog_visible_after_space']}） → この銘柄はスキップ")
 
