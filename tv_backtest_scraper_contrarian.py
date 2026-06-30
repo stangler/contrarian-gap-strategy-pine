@@ -58,6 +58,13 @@ def slot_label_from_data(data: list) -> str | None:
     return f"{hhmm(start)}-{hhmm(end)}"
 
 async def switch_symbol(page, symbol: str) -> dict:
+    # チャートキャンバスをクリックしてフォーカス確保（初回銘柄対策）
+    size = page.viewport_size
+    cx = size["width"] // 2 if size else 900
+    cy = size["height"] // 2 if size else 400
+    await page.mouse.click(cx, cy)
+    await page.wait_for_timeout(300)
+
     has_focus_before = await page.evaluate("document.hasFocus()")
     title_before = await page.title()
 
