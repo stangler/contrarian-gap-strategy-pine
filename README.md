@@ -67,7 +67,7 @@
 | 14:30-15:00 | 870 | 900 |
 | 15:00-15:25 | 900 | 925 |
 
-選択中のスロット情報（`slotStartMin`/`slotEndMin`）は `display.data_window` でデータウィンドウにも出力（`Slot開始(分)` / `Slot終了(分)`）。スクレイパーがこれを読み取り、CSV/Excelのファイル名・スロット列を自動判定する。**python側で時間帯を手動指定する必要はない。**
+選択中のスロット情報（`slotStartMin`/`slotEndMin`）は `display.data_window` でデータウィンドウにも出力（`Slot開始(分)` / `Slot終了(分)`）。スクレイパーがこれを読み取り、CSVのファイル名・スロット列を自動判定する。**python側で時間帯を手動指定する必要はない。**
 
 > 現状、スロット切替はTradingView側で手動操作（11スロット×銘柄数を回す場合、スロットごとに全銘柄を回し切ってから次のスロットへ切り替える運用）。Settings操作の自動化はStrategy Testerパネルが設定ボタンを物理的に遮蔽する問題が未解決のため未実装。
 
@@ -116,33 +116,34 @@
 ## ワークフロー
 
 ```
-urls.txt（銘柄リスト）
+format_template.csv（連番・銘柄コード・銘柄名の一覧、プロジェクトルート、手動管理）
         ↓
 [TradingView側でslotPresetを希望の時間帯に手動設定]
         ↓
 tv_backtest_scraper_contrarian.py（Playwright自動操作 / Spaceキーで銘柄切替 / スロットはデータウィンドウから自動検出）
         ↓
-SYMBOL_HHMM_HHMM_YYYYMMDD.csv（銘柄×スロットごと）
+csv/SYMBOL_HHMM_HHMM_YYYYMMDD.csv（銘柄×スロットごと）
         ↓
-extract_data_contrarian.py（CSVをスロット別に集約 → format_HHMM_HHMM.xlsx を生成）
+extract_data_contrarian.py（csv/内のCSVをスロット別に集約 → csv/format_HHMM_HHMM.csv を生成。並び順は format_template.csv 準拠）
         ↓
 [スロットを切り替えて再度スクレイパー〜extract_data_contrarianを繰り返す]
         ↓
-merge_format_xlsx.py（同フォルダの format_*.xlsx を1ファイルに統合 → format_all_slots.xlsx）
+merge_format_csv.py（csv/内の format_*.csv を1ファイルに統合 → csv/format_all_slots.csv）
 ```
 
 ---
 
 ## ファイル構成
 
-| ファイル | 役割 |
+| ファイル/フォルダ | 役割 |
 |---------|------|
 | `contrarian-gap-strategy.pine` | PineScript v6 ストラテジー本体 |
 | `tv_backtest_scraper_contrarian.py` | Playwrightでバックテスト結果を全自動スクレイプ（スロット自動検出対応） |
-| `extract_data_contrarian.py` | 全CSVをスロット別に集約し `format_HHMM_HHMM.xlsx` へ転記 |
-| `merge_format_xlsx.py` | 複数スロットの `format_*.xlsx` を1ファイル（`format_all_slots.xlsx`）に統合 |
-| `urls.txt` | スクレイプ対象銘柄リスト（銘柄コードのみ、1行1銘柄） |
-| `format.xlsx` | 出力テンプレート（スロットごとのコピーが `format_HHMM_HHMM.xlsx` として生成される） |
+| `extract_data_contrarian.py` | `csv/`内の全CSVをスロット別に集約し `csv/format_HHMM_HHMM.csv` へ転記 |
+| `merge_format_csv.py` | `csv/`内の複数スロットの `format_*.csv` を1ファイル（`csv/format_all_slots.csv`）に統合 |
+| `format_template.csv` | 銘柄マスタ兼出力テンプレート（連番・銘柄コード・銘柄名、プロジェクトルートで手動管理。スクレイプ対象銘柄と出力の並び順を兼ねる） |
+| `csv/` | スクレイプ結果CSV・集計結果CSVの出力先（自動生成） |
+| `png/` | 銘柄切替失敗時のデバッグスクリーンショット出力先（自動生成） |
 
 ---
 
@@ -167,71 +168,71 @@ uv run python tv_backtest_scraper_contrarian.py
 
 > **注意**: GU/GD/Cont・スロット情報の取得にはデータウィンドウが開いている必要がある。
 
-実行後、銘柄×スロットごとに `SYMBOL_HHMM_HHMM_YYYYMMDD.csv` が生成される。
+実行後、銘柄×スロットごとに `csv/SYMBOL_HHMM_HHMM_YYYYMMDD.csv` が生成される（`csv/`フォルダが存在しなければ自動作成）。
 
-### 2. スロット別Excel転記
+### 2. スロット別CSV転記
 
 ```powershell
 uv run python extract_data_contrarian.py
 ```
 
-同フォルダ内のCSVをスロット別（`Slot開始`/`Slot終了`の値）に自動グルーピングし、各スロットごとに `format_HHMM_HHMM.xlsx` を生成。同一銘柄・同一スロットのCSVが複数（別日付）残っている場合は、更新日時（mtime）が最新のものを採用する。
-
-> **注意**: `format.xlsx` を開いたまま実行するとPermissionErrorが発生するため、実行前に閉じること。
+`csv/`内のスクレイプ結果CSVをスロット別（`Slot開始`/`Slot終了`の値）に自動グルーピングし、各スロットごとに `csv/format_HHMM_HHMM.csv` を生成。銘柄の並び順は `format_template.csv`（プロジェクトルート）の「銘柄コード」列の並びに準拠する。同一銘柄・同一スロットのCSVが複数（別日付）残っている場合は、更新日時（mtime）が最新のものを採用する。データが見つからなかった銘柄は連番・銘柄コード・銘柄名のみで他列は空欄になる。
 
 全スロット分のデータが必要な場合は、手順0〜2をスロットごとに繰り返す。
 
 ### 3. スロット統合
 
 ```powershell
-uv run python merge_format_xlsx.py
+uv run python merge_format_csv.py
 ```
 
-同フォルダ内の `format_HHMM_HHMM.xlsx` をすべて読み込み、「スロット」列を付与して1シートに縦結合、`format_all_slots.xlsx` として出力。
+`csv/`内の `format_HHMM_HHMM.csv` をすべて読み込み、「スロット」列を付与して1ファイルに縦結合、`csv/format_all_slots.csv` として出力。
 
 ---
 
-## urls.txt フォーマット
+## format_template.csv フォーマット
+
+スクレイプ対象銘柄と、出力CSVの銘柄並び順を定義するマスタファイル（プロジェクトルートに配置、手動管理）。
 
 ```
-# 銘柄コードのみ記載（TSE:不要）
-186A
-268A
-3103
-9984
+連番,銘柄コード,銘柄名,総損益,最大ドローダウン,トレード総数,勝ちトレード,負けトレード,勝率,プロフィットファクター,GU_勝,GU_負,GU_勝率,GD_勝,GD_負,GD_勝率,Cont_勝,Cont_負,Cont_勝率
+1,186A,アストロスケールホールディンク,,,,,,,,,,,,,,,,
+2,268A,リガク・ホールディングス,,,,,,,,,,,,,,,,
 ```
 
-- `#` 始まりの行はコメント（スキップ）
-- 取引所プレフィックスは不要（スクレイパー側で `TSE:` を自動付与）
+- `連番`・`銘柄コード`・`銘柄名`のみ人手で管理し、それ以降の列は空欄でよい（`extract_data_contrarian.py`実行のたびに上書きされる）
+- `tv_backtest_scraper_contrarian.py`はこのファイルの「銘柄コード」列を上から順に読み込んでスクレイプ対象とする（取引所プレフィックス`TSE:`は自動付与するので記載不要）
+- 銘柄を追加/削除/並び替えたい場合は、このファイルを直接編集する（行を追加する場合、右側のデータ列は空欄のままでよい）
 
 ---
 
-## 出力フォーマット（format_HHMM_HHMM.xlsx）
+## 出力フォーマット（csv/format_HHMM_HHMM.csv）
 
 | 列 | 内容 |
 |----|------|
 | A | 連番 |
-| B | 銘柄 |
-| C | 総損益 |
-| D | 最大ドローダウン |
-| E | トレード総数 |
-| F | 勝ちトレード数 |
-| G | 負けトレード数 |
-| H | 勝率 |
-| I | プロフィットファクター |
-| J | GU_勝 |
-| K | GU_負 |
-| L | GU_勝率 |
-| M | GD_勝 |
-| N | GD_負 |
-| O | GD_勝率 |
-| P | Cont_勝 |
-| Q | Cont_負 |
-| R | Cont_勝率 |
+| B | 銘柄コード |
+| C | 銘柄名 |
+| D | 総損益 |
+| E | 最大ドローダウン |
+| F | トレード総数 |
+| G | 勝ちトレード数 |
+| H | 負けトレード数 |
+| I | 勝率 |
+| J | プロフィットファクター |
+| K | GU_勝 |
+| L | GU_負 |
+| M | GU_勝率 |
+| N | GD_勝 |
+| O | GD_負 |
+| P | GD_勝率 |
+| Q | Cont_勝 |
+| R | Cont_負 |
+| S | Cont_勝率 |
 
-`format_all_slots.xlsx` ではこれに加えて末尾に「スロット」列（例: `10:30-11:00`）が付与される。
+`csv/format_all_slots.csv` ではこれに加えて末尾に「スロット」列（例: `10:30-11:00`）が付与される。
 
-> 銘柄列（B）はExcelテンプレートの仕様上、数字のみの銘柄コード（例: `3103`）は数値型、英字を含むコード（例: `186A`）は文字列型として格納される。pandas等で銘柄突合する場合は型を揃えること（バグではなく仕様）。
+> CSVはすべて文字列として保存される。エンコーディングはExcelでもそのまま開けるよう UTF-8 (BOM付き / utf-8-sig) で出力している。
 
 ---
 
@@ -259,7 +260,7 @@ Slot終了,660
 - 1行目: 銘柄コード, スロットラベル（自動検出できた場合）
 - 2行目: ヘッダー（固定）
 - 3行目以降: 指標,値
-- ファイル名: `SYMBOL_HHMM_HHMM_YYYYMMDD.csv`（スロット自動検出失敗時はスロットタグなし）
+- ファイル名: `csv/SYMBOL_HHMM_HHMM_YYYYMMDD.csv`（スロット自動検出失敗時はスロットタグなし）
 
 ---
 
@@ -267,7 +268,9 @@ Slot終了,660
 
 `tv_backtest_scraper_contrarian.py` の `DEBUG_SCRAPE = True` に設定すると `debug_texts.txt` に全DOMテキストノードを出力。GU/GD/Cont・Slot情報未取得時はラベル名の確認に使用する。
 
-銘柄切替時の診断ログは `debug_switch_log.jsonl` に蓄積される（`has_focus_before`、`title_before`、`title_after`、`search_dialog_visible_after_space`、リトライ時は `retry: true` も記録）。タイトル変化が検知できない場合の原因調査に使う。
+銘柄切替時の診断ログは `debug_switch_log.jsonl`（プロジェクトルート）に蓄積される（`has_focus_before`、`title_before`、`title_after`、`search_dialog_visible_after_space`、リトライ時は`attempt`番号も記録）。タイトル変化が検知できない場合の原因調査に使う。
+
+全リトライ失敗時のスクリーンショットは `png/debug_fail_SYMBOL_attemptN_HHMMSS.png` に自動保存される（`DEBUG_SCREENSHOT`の設定に関わらず、失敗時は常に撮る）。
 
 ---
 

@@ -1,6 +1,8 @@
 import csv
 from pathlib import Path
-from openpyxl import load_workbook
+
+CSV_DIR = Path("csv")   # スクレイプ結果CSVの置き場・出力先
+TEMPLATE_FILE = Path("format_template.csv")   # 銘柄マスタ（プロジェクトルート、手動管理）
 
 def extract_from_csv(csv_file):
     data = {'_file': str(csv_file)}
@@ -31,44 +33,69 @@ def slot_key_from_data(data: dict) -> str:
         return f"{h:02d}{mi:02d}"
     return f"{hhmm(start)}_{hhmm(end)}"
 
-def update_excel(csv_data_list, template="format.xlsx", output_name="format.xlsx"):
-    wb = load_workbook(template)
-    ws = wb.active
+def load_template_rows(template=TEMPLATE_FILE):
+    """テンプレートCSVから (連番, 銘柄コード, 銘柄名) の並び順を読み込む。"""
+    rows = []
+    with open(template, encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        header = reader.fieldnames
+        for row in reader:
+            code = (row.get("銘柄コード") or "").strip()
+            if code:
+                rows.append((
+                    (row.get("連番") or "").strip(),
+                    code,
+                    (row.get("銘柄名") or "").strip(),
+                ))
+    return header, rows
 
-    for row in ws.iter_rows(min_row=2):
-        symbol_cell = row[1]  # 列B
-        if not symbol_cell.value:
-            continue
+def update_csv(csv_data_list, template=TEMPLATE_FILE, output_name="format.csv"):
+    header, template_rows = load_template_rows(template)
 
-        symbol = str(symbol_cell.value).strip()
-        csv_data = next((d for d in csv_data_list if d.get('銘柄') == symbol), None)
+    out_rows = []
+    for seq, code, name in template_rows:
+        csv_data = next((d for d in csv_data_list if d.get('銘柄') == code), None)
 
         if csv_data:
-            # 既存列（C〜I = index 2〜8）
-            for col, key in zip(range(2, 9), [
+            if '勝率' not in csv_data:
+                try:
+                    win = float(csv_data.get('勝ちトレード', ''))
+                    total = float(csv_data.get('トレード総数', ''))
+                    csv_data['勝率'] = f"{win / total * 100:.1f}%" if total else ''
+                except (TypeError, ValueError):
+                    csv_data['勝率'] = ''
+            row = [seq, code, name]
+            for key in [
                 '総損益', '最大ドローダウン', 'トレード総数',
-                '勝ちトレード', '負けトレード', '勝率', 'プロフィットファクター'
-            ]):
-                row[col].value = csv_data.get(key)
-
-            # GU/GD/Cont列（J〜R = index 9〜17）
-            for col, key in zip(range(9, 18), [
+                '勝ちトレード', '負けトレード', '勝率', 'プロフィットファクター',
                 'GU_勝', 'GU_負', 'GU_勝率',
                 'GD_勝', 'GD_負', 'GD_勝率',
                 'Cont_勝', 'Cont_負', 'Cont_勝率',
-            ]):
-                row[col].value = csv_data.get(key)
-
-            print(f"  ✓ {symbol}")
+            ]:
+                row.append(csv_data.get(key, ''))
+            out_rows.append(row)
+            print(f"  ✓ {code} {name}")
         else:
-            print(f"  ✗ {symbol}: CSVなし")
+            # データなし: 連番/銘柄コード/銘柄名のみ、他は空欄
+            out_rows.append([seq, code, name] + [''] * 16)
+            print(f"  ✗ {code} {name}: CSVなし")
 
-    wb.save(output_name)
+    with open(output_name, "w", encoding="utf-8-sig", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        writer.writerows(out_rows)
+
     print(f"  Saved to {output_name}")
 
 def main():
-    csv_files = sorted(Path(".").glob("*.csv"), key=lambda p: p.stat().st_mtime)
-    print(f"Found {len(csv_files)} CSV files")
+    CSV_DIR.mkdir(exist_ok=True)
+
+    # csv/ フォルダ内から、出力済みファイル（format_*.csv）は集計対象から除外
+    csv_files = sorted(
+        (p for p in CSV_DIR.glob("*.csv") if not p.name.startswith("format_")),
+        key=lambda p: p.stat().st_mtime,
+    )
+    print(f"Found {len(csv_files)} CSV files in {CSV_DIR}/")
 
     csv_data_list = [extract_from_csv(f) for f in csv_files]
 
@@ -90,11 +117,11 @@ def main():
     for slot, symbol_map in grouped.items():
         items = list(symbol_map.values())
         if slot == "unknown":
-            out_name = "format.xlsx"  # スロット情報なしCSV（旧形式）は従来通り
+            out_name = CSV_DIR / "format.csv"  # スロット情報なしCSV（旧形式）は従来通り
         else:
-            out_name = f"format_{slot}.xlsx"
+            out_name = CSV_DIR / f"format_{slot}.csv"
         print(f"--- スロット「{slot}」（{len(items)}件） → {out_name} ---")
-        update_excel(items, template="format.xlsx", output_name=out_name)
+        update_csv(items, template=TEMPLATE_FILE, output_name=out_name)
         print()
 
 if __name__ == "__main__":
