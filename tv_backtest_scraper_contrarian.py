@@ -9,18 +9,15 @@ from playwright.async_api import async_playwright
 # ========== 設定 ==========
 TEMPLATE_FILE = Path("format_template.csv")   # 銘柄マスタ（プロジェクトルート、手動管理）
 CSV_DIR      = Path("csv")   # スクレイプ結果CSVの出力先
-PNG_DIR      = Path("png")   # デバッグスクリーンショットの出力先
 CHART_URL    = "https://jp.tradingview.com/chart/"
 USER_DATA    = r"C:\Temp\tv-profile-pw"   # セッション保存先
 WAIT_RECALC  = 10      # バックテスト再計算待機（秒）
 WAIT_SEARCH  = 1.5    # 検索ダイアログ安定待機（秒）
 EXCHANGE     = "TSE"
-DEBUG_SCREENSHOT = False  # 成功可否に関わらずswitch_symbol前後で毎回撮る（デフォルト: False）
 MAX_ATTEMPTS = 3       # 1銘柄あたりの最大試行回数（初回+リトライ）
 ESCAPE_PRESSES = 3     # 各試行前にEscapeを押す回数（重なったダイアログ対策）
 
 CSV_DIR.mkdir(exist_ok=True)
-PNG_DIR.mkdir(exist_ok=True)
 
 # ==========================
 
@@ -142,19 +139,11 @@ async def wait_for_chart_update(page, symbol: str, debug_info: dict) -> bool:
     debug_info["title_after"] = title_after
 
     if not ok:
-        # 失敗時は原因調査のため DEBUG_SCREENSHOT の設定に関わらず必ず撮る
-        shot_path = PNG_DIR / f"debug_fail_{symbol}_attempt{debug_info.get('attempt', 1)}_{datetime.now():%H%M%S}.png"
-        try:
-            await page.screenshot(path=str(shot_path))
-            debug_info["screenshot"] = str(shot_path)
-        except Exception as e:
-            debug_info["screenshot_error"] = str(e)
         overlays_after = await count_open_overlays(page)
         debug_info["overlays_after"] = overlays_after
         print(f"  ⚠ タイトル変化なし（has_focus_before={debug_info['has_focus_before']}, "
               f"search_dialog={debug_info['search_dialog_visible_after_space']}, "
-              f"overlays_before={debug_info.get('overlays_before')}, overlays_after={overlays_after}） "
-              f"→ screenshot: {shot_path.name}")
+              f"overlays_before={debug_info.get('overlays_before')}, overlays_after={overlays_after}）")
 
     log_debug(debug_info)
 
@@ -322,8 +311,7 @@ async def main():
                     if consecutive_full_failures >= PAUSE_AFTER_N_FAILURES:
                         print(f"\n⚠ {consecutive_full_failures}銘柄連続で全リトライ失敗。"
                               f"ブラウザ上に固着したダイアログ/通知がある可能性が高い。")
-                        print("  → debug_fail_*.png（スクリーンショット）を確認し、")
-                        print("     ブラウザ側で手動でダイアログを閉じるかチャートをクリックしてから続行してください。")
+                        print("  → ブラウザ側で手動でダイアログを閉じるかチャートをクリックしてから続行してください。")
                         input("  対処後 → Enter で次の銘柄から再開: ")
                         consecutive_full_failures = 0
                     continue

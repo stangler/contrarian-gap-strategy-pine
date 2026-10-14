@@ -1,18 +1,19 @@
 //@version=6
-strategy("ズレ手法", overlay=true, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+strategy("ズレ手法", overlay=true, initial_capital=10000000, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
 
 // 入力
 slTicks        = input.int(15, "SL (固定)", minval=1)
 tpTicks        = input.int(15, "TP (固定)", minval=1)
 nappin1Ticks   = input.int(15, "ナンピン1 (固定)", minval=1)
 nappin2Ticks   = input.int(15, "ナンピン2 (固定)", minval=1)
+nappinCount    = input.int(2,  "ナンピン回数", minval=1, maxval=2)
 bearCount      = input.int(2,  "陰線本数", minval=2, maxval=6)
 alertPreSignal = input.bool(true, "事前アラート（N-1本陰線）")
-gap_threshold_pct = input.float(0.5, "ギャップ閾値（%）", group="GU/GD/Cont設定")
+gap_threshold_pct = input.float(1.0, "ギャップ閾値（%）", group="GU/GD/Cont設定")
 
 // バックテスト期間
 startDate = input.time(timestamp("2026-01-05 00:00"), "開始日")
-endDate   = input.time(timestamp("2026-06-19 06:30"), "終了日")
+endDate   = input.time(timestamp("2026-08-19 06:30"), "終了日")
 inRange   = time >= startDate and time <= endDate
 
 // 取引時間帯スロット（プリセット切替、設定ダイアログから変更）
@@ -92,8 +93,8 @@ else if bearCount == 6
 
 tickSize = syminfo.mintick
 
-// 合計SLティック
-totalSLTicks = nappin1Ticks + nappin2Ticks + slTicks
+// 合計SLティック（ナンピン回数に応じて可変）
+totalSLTicks = nappinCount == 1 ? nappin1Ticks + slTicks : nappin1Ticks + nappin2Ticks + slTicks
 
 // ナンピン管理
 var float entryPrice  = na
@@ -134,8 +135,8 @@ if strategy.position_size > 0 and not nappin1Done and not na(entryPrice) and
     strategy.entry("Nappin1", strategy.long)
     nappin1Done := true
 
-// ナンピン2
-if strategy.position_size > 0 and nappin1Done and not nappin2Done and not na(entryPrice) and
+// ナンピン2（nappinCount==2の場合のみ）
+if nappinCount == 2 and strategy.position_size > 0 and nappin1Done and not nappin2Done and not na(entryPrice) and
    low <= entryPrice - (nappin1Ticks + nappin2Ticks) * tickSize and inRange and timeOk
     strategy.entry("Nappin2", strategy.long)
     nappin2Done := true
