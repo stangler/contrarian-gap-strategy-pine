@@ -1,5 +1,5 @@
 //@version=6
-strategy("ズレ手法", overlay=true, initial_capital=10000000, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+strategy("ズレ手法", overlay=true, initial_capital=10000000, default_qty_type=strategy.fixed, default_qty_value=100)
 
 // 入力
 slTicks        = input.int(15, "SL (固定)", minval=1)
@@ -93,6 +93,9 @@ else if bearCount == 6
 
 tickSize = syminfo.mintick
 
+// 売買単位: 日経レバ(1570)のみ1株、その他は100株
+float unitQty = syminfo.ticker == "1570" ? 1.0 : 100.0
+
 // 合計SLティック（ナンピン回数に応じて可変）
 totalSLTicks = nappinCount == 1 ? nappin1Ticks + slTicks : nappin1Ticks + nappin2Ticks + slTicks
 
@@ -127,18 +130,18 @@ if slotClose and strategy.position_size > 0
 
 // 初回エントリー
 if signal and strategy.position_size == 0 and inRange and timeOk
-    strategy.entry("Long", strategy.long)
+    strategy.entry("Long", strategy.long, qty=unitQty)
 
 // ナンピン1
 if strategy.position_size > 0 and not nappin1Done and not na(entryPrice) and
    low <= entryPrice - nappin1Ticks * tickSize and inRange and timeOk
-    strategy.entry("Nappin1", strategy.long)
+    strategy.entry("Nappin1", strategy.long, qty=unitQty)
     nappin1Done := true
 
 // ナンピン2（nappinCount==2の場合のみ）
 if nappinCount == 2 and strategy.position_size > 0 and nappin1Done and not nappin2Done and not na(entryPrice) and
    low <= entryPrice - (nappin1Ticks + nappin2Ticks) * tickSize and inRange and timeOk
-    strategy.entry("Nappin2", strategy.long)
+    strategy.entry("Nappin2", strategy.long, qty=unitQty)
     nappin2Done := true
 
 // 事前アラート
