@@ -120,6 +120,13 @@ async def switch_symbol(page, symbol: str, attempt: int = 1) -> dict:
         "search_dialog_visible_after_space": search_dialog_visible,
     }
 
+async def is_already_on_symbol(page, symbol: str) -> bool:
+    """チャートが既に対象銘柄を表示していて、価格・%も読み込み済みかを判定する。
+    市場休場中などで同一銘柄を再選択するとタイトルが銘柄コードだけにリセットされ、
+    価格(%)が戻らないことがあるため、この場合は切替自体を省略する。"""
+    title = await page.title()
+    return title.startswith(symbol) and "%" in title
+
 async def wait_for_chart_update(page, symbol: str, debug_info: dict) -> bool:
     ok = True
     try:
@@ -297,13 +304,20 @@ async def main():
             print(f"\n[{i}/{len(symbols)}] {symbol}")
             try:
                 ok = False
-                for attempt in range(1, MAX_ATTEMPTS + 1):
-                    debug_info = await switch_symbol(page, symbol, attempt=attempt)
-                    ok = await wait_for_chart_update(page, symbol, debug_info)
-                    if ok:
-                        break
-                    if attempt < MAX_ATTEMPTS:
-                        print(f"  ↻ リトライ {attempt}/{MAX_ATTEMPTS - 1}（Escape連打→再試行）")
+                if await is_already_on_symbol(page, symbol):
+                    print("  既に対象銘柄を表示中 → 切替を省略")
+                    log_debug({"symbol": symbol, "attempt": 0, "ok": True,
+                               "skipped_switch": True, "title_before": await page.title()})
+                    await page.wait_for_timeout(int(WAIT_RECALC * 1000))
+                    ok = True
+                else:
+                    for attempt in range(1, MAX_ATTEMPTS + 1):
+                        debug_info = await switch_symbol(page, symbol, attempt=attempt)
+                        ok = await wait_for_chart_update(page, symbol, debug_info)
+                        if ok:
+                            break
+                        if attempt < MAX_ATTEMPTS:
+                            print(f"  ↻ リトライ {attempt}/{MAX_ATTEMPTS - 1}（Escape連打→再試行）")
                 if not ok:
                     print(f"  ✗ {MAX_ATTEMPTS}回失敗 → この銘柄はスキップ")
                     failed.append(symbol)
